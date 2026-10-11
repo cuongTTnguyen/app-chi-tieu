@@ -4,7 +4,8 @@
     transactions: 'finance_buddy_transactions',
     categories: 'finance_buddy_categories',
     profiles: 'finance_buddy_profiles',
-    funds: 'finance_buddy_funds'
+    funds: 'finance_buddy_funds',
+    reminders: 'finance_buddy_recurring_reminders'
   };
   let auth = null, db = null, unsubscribe = null, initialized = false;
   let dirty = false, applyingRemote = false, lastFingerprint = '', timer = null;
@@ -71,23 +72,24 @@
     const ref = docRef();
     const snap = await ref.get();
     if (!snap.exists) {
-      if (confirm('Chưa có dữ liệu trên Firebase. Tải dữ liệu đang có trên thiết bị này lên đám mây?')) await writeCloud(user);
+      const uploadLocal = await (window.appConfirm ? window.appConfirm('Chưa có dữ liệu trên Firebase. Bạn muốn tải dữ liệu đang có trên thiết bị này lên đám mây?', {title:'Thiết lập đồng bộ', confirmText:'Tải lên Firebase'}) : Promise.resolve(false));
+      if (uploadLocal) await writeCloud(user);
       else status('Chưa có dữ liệu đám mây. Dữ liệu trên thiết bị được giữ nguyên.');
     } else {
       const remote = snap.data();
       if (remote.ownerUid !== user.uid) throw new Error('Tài khoản này không có quyền với bộ dữ liệu đồng bộ đã chọn.');
-      const useCloud = confirm('Đã tìm thấy dữ liệu Firebase. Nhấn OK để dùng dữ liệu trên đám mây (thay dữ liệu cục bộ trên thiết bị này); nhấn Hủy để giữ dữ liệu cục bộ và tải nó lên đám mây.');
+      const useCloud = await (window.appConfirm ? window.appConfirm('Đã tìm thấy dữ liệu Firebase. Nếu chọn dùng dữ liệu đám mây, dữ liệu cục bộ trên thiết bị này sẽ được thay thế. Nếu không, dữ liệu cục bộ sẽ được tải lên Firebase.', {title:'Chọn dữ liệu đồng bộ', confirmText:'Dùng dữ liệu đám mây', confirmClass:'bg-brand-primary hover:bg-purple-700'}) : Promise.resolve(false));
       if (useCloud) { applyRemote(remote.data || {}); location.reload(); return; }
       await writeCloud(user);
     }
-    unsubscribe = ref.onSnapshot(snapshot => {
+    unsubscribe = ref.onSnapshot(async snapshot => {
       if (!snapshot.exists || !auth.currentUser) return;
       const remote = snapshot.data();
       if (remote.ownerUid !== auth.currentUser.uid) { status('Tài khoản không có quyền đọc bộ dữ liệu này.', true); return; }
       const remoteFingerprint = fingerprint(remote.data || {});
       if (remoteFingerprint === lastFingerprint) return;
       if (dirty) {
-        const useRemote = confirm('Phát hiện dữ liệu thay đổi trên thiết bị khác trong khi thiết bị này cũng có thay đổi. Nhấn OK để dùng bản đám mây; nhấn Hủy để giữ bản trên thiết bị này và gửi lên đám mây.');
+        const useRemote = await (window.appConfirm ? window.appConfirm('Dữ liệu trên đám mây và thiết bị này đều đã thay đổi. Chọn dùng bản đám mây để thay dữ liệu cục bộ, hoặc giữ bản trên thiết bị này để tải lên đám mây.', {title:'Xung đột đồng bộ', confirmText:'Dùng bản đám mây', confirmClass:'bg-brand-primary hover:bg-purple-700'}) : Promise.resolve(false));
         if (useRemote) { applyRemote(remote.data || {}); location.reload(); }
         else writeCloud(auth.currentUser).catch(e => status('Không thể ghi dữ liệu: ' + e.message, true));
       } else {

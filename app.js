@@ -1,3 +1,11 @@
+// Ngày theo múi giờ địa phương (tránh toISOString() khiến ngày bị lệch ở Việt Nam).
+function getLocalDateString(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
 // --- 1. KHỞI TẠO BIẾN VÀ LƯU TRỮ LÊN LOCALSTORAGE ---
 const STORAGE_KEY_TX = 'finance_buddy_transactions';
 const STORAGE_KEY_THEME = 'finance_buddy_theme';
@@ -69,8 +77,8 @@ function getTransactions() {
     
     // Dữ liệu mẫu
     const defaultData = [
-        { id: 1, type: 'income', workspace: 'user1', amount: 20000000, account: 'main', category: 'salary', date: new Date().toISOString().split('T')[0], tag: 'luong', note: 'Lương tháng' },
-        { id: 2, type: 'expense', workspace: 'user1', amount: 65000, account: 'main', category: 'food', date: new Date().toISOString().split('T')[0], tag: '', note: 'Phở sáng' }
+        { id: 1, type: 'income', workspace: 'user1', amount: 20000000, account: 'main', category: 'salary', date: getLocalDateString(), tag: 'luong', note: 'Lương tháng' },
+        { id: 2, type: 'expense', workspace: 'user1', amount: 65000, account: 'main', category: 'food', date: getLocalDateString(), tag: '', note: 'Phở sáng' }
     ];
     localStorage.setItem(STORAGE_KEY_TX, JSON.stringify(defaultData));
     return defaultData;
@@ -132,28 +140,30 @@ function renderFundManager() {
 }
 function addFund() {
     const nameEl=document.getElementById('new-fund-name'), typeEl=document.getElementById('new-fund-type');
-    const name=nameEl?.value.trim(); if(!name){alert('Vui lòng nhập tên quỹ.');return;}
+    const name=nameEl?.value.trim(); if(!name){appToast('Vui lòng nhập tên quỹ.');return;}
     const funds=getFunds(); funds.push({id:'fund_'+Date.now(),name,type:typeEl?.value==='shared'?'shared':'personal'}); saveFunds(funds); nameEl.value=''; renderFundManager();
 }
 function editFund(id) {
     const funds=getFunds(), fund=funds.find(f=>f.id===id); if(!fund)return;
-    const name=prompt('Tên quỹ mới:',fund.name); if(name===null)return; if(!name.trim()){alert('Tên quỹ không được để trống.');return;}
+    const name=prompt('Tên quỹ mới:',fund.name); if(name===null)return; if(!name.trim()){appToast('Tên quỹ không được để trống.');return;}
     const type=prompt('Loại quỹ: nhập "personal" cho ví cá nhân hoặc "shared" cho quỹ chung.',fund.type); if(type===null)return;
     const nextType=type.toLowerCase()==='shared'?'shared':'personal';
-    if (nextType !== fund.type && dbTransactions.some(t => t.account === id)) { alert('Quỹ đã có giao dịch nên không thể đổi loại để tránh chuyển nhầm dữ liệu giữa cá nhân và quỹ chung. Bạn vẫn có thể đổi tên quỹ.'); return; }
+    if (nextType !== fund.type && dbTransactions.some(t => t.account === id)) { appToast('Quỹ đã có giao dịch nên không thể đổi loại để tránh chuyển nhầm dữ liệu giữa cá nhân và quỹ chung. Bạn vẫn có thể đổi tên quỹ.'); return; }
     fund.name=name.trim(); fund.type=nextType; saveFunds(funds); renderFundManager();
 }
 function deleteFund(id) {
     const funds=getFunds(), fund=funds.find(f=>f.id===id); if(!fund)return;
-    if(dbTransactions.some(t=>t.account===id)){alert('Quỹ này đang được giao dịch sử dụng. Hãy sửa các giao dịch liên quan trước khi xóa để tránh mất liên kết.');return;}
-    if(!confirm(`Xóa quỹ “${fund.name}”?`))return;
-    saveFunds(funds.filter(f=>f.id!==id)); renderFundManager();
+    if(dbTransactions.some(t=>t.account===id)){appToast('Quỹ này đang được giao dịch sử dụng. Hãy sửa các giao dịch liên quan trước khi xóa để tránh mất liên kết.', 'warning');return;}
+    appConfirm(`Xóa quỹ “${fund.name}”?`, { title: 'Xóa quỹ', confirmText: 'Xóa quỹ', confirmClass: 'bg-rose-600 hover:bg-rose-700' }).then(accepted => {
+      if (!accepted) return;
+      saveFunds(funds.filter(f=>f.id!==id)); renderFundManager(); appToast('Đã xóa quỹ.', 'success');
+    });
 }
 function saveCurrentProfile() {
     const input=document.getElementById('profile-display-name'); if(!input)return;
-    const name=input.value.trim(); if(!name){alert('Vui lòng nhập tên hiển thị.');return;}
-    if(currentWorkspace==='shared'){alert('Hãy chọn Người A hoặc Người B để chỉnh sửa hồ sơ cá nhân.');return;}
-    userProfiles[currentWorkspace].name=name; saveProfiles(); alert('Đã lưu hồ sơ.');
+    const name=input.value.trim(); if(!name){appToast('Vui lòng nhập tên hiển thị.');return;}
+    if(currentWorkspace==='shared'){appToast('Hãy chọn Người A hoặc Người B để chỉnh sửa hồ sơ cá nhân.');return;}
+    userProfiles[currentWorkspace].name=name; saveProfiles(); appToast('Đã lưu hồ sơ.');
 }
 const AVATAR_CHOICES = [
     ['Felix','avataaars'],['Aneka','avataaars'],['Mimi','avataaars'],['Jasper','avataaars'],['Luna','avataaars'],['Oliver','avataaars'],['Sasha','avataaars'],['Nala','avataaars'],['Boo','bottts'],['Pixel','bottts'],['Nova','bottts'],['Comet','bottts'],['Sunny','fun-emoji'],['Happy','fun-emoji'],['Clover','lorelei'],['Robin','lorelei'],['Sky','notionists'],['River','notionists'],['Mint','thumbs'],['Berry','thumbs']
@@ -164,7 +174,7 @@ function openAvatarPicker(){
     grid.innerHTML=AVATAR_CHOICES.map(([seed,style])=>{const url=`https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;return `<button type="button" onclick="chooseAvatar('${url}')" class="rounded-2xl p-2 border border-slate-200 dark:border-slate-700 hover:border-brand-primary hover:bg-brand-primary/10"><img class="w-14 h-14 rounded-full mx-auto" src="${url}" alt="Avatar ${seed}"><span class="text-xs font-bold block mt-1">${seed}</span></button>`}).join('');
     modal.classList.remove('hidden'); modal.classList.add('flex');
 }
-function chooseAvatar(url){if(currentWorkspace==='shared'){alert('Hãy chọn Người A hoặc Người B để đổi ảnh đại diện.');return;}userProfiles[currentWorkspace].avatar=url;saveProfiles();const m=document.getElementById('avatar-picker-modal');if(m){m.classList.add('hidden');m.classList.remove('flex');}}
+function chooseAvatar(url){if(currentWorkspace==='shared'){appToast('Hãy chọn Người A hoặc Người B để đổi ảnh đại diện.');return;}userProfiles[currentWorkspace].avatar=url;saveProfiles();const m=document.getElementById('avatar-picker-modal');if(m){m.classList.add('hidden');m.classList.remove('flex');}}
 
 // --- 2. CÁC HÀM TIỆN ÍCH ---
 const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
@@ -265,8 +275,9 @@ function setWorkspace(ws) {
 
 function updateLayoutProfile() {
     const profile = userProfiles[currentWorkspace] || userProfiles[activePerson] || userProfiles.user1;
-    document.querySelectorAll('.layout-user-name').forEach(el => el.textContent = profile.name);
-    document.querySelectorAll('.layout-user-avatar').forEach(el => el.src = profile.avatar);
+    const headerProfile = userProfiles[activePerson] || userProfiles.user1;
+    document.querySelectorAll('.layout-user-name').forEach(el => el.textContent = headerProfile.name);
+    document.querySelectorAll('.layout-user-avatar').forEach(el => { el.src = headerProfile.avatar; el.alt = `Ảnh đại diện ${headerProfile.name}`; });
     const profileNameInput = document.getElementById('profile-display-name');
     if (profileNameInput && currentWorkspace !== 'shared') profileNameInput.value = profile.name;
     
@@ -746,7 +757,7 @@ function selectColorOption(element) {
 function saveNewCategory() {
     const name = document.getElementById('new-cat-name').value.trim();
     if(!name) {
-        alert('Vui lòng nhập tên danh mục!');
+        appToast('Vui lòng nhập tên danh mục!');
         return;
     }
 
@@ -802,6 +813,99 @@ function closeFeatureMenu() {
     }
 }
 
+// --- GOI 3: NHAC CAC KHOAN DINH KY (khong tu dong tao giao dich) ---
+const STORAGE_KEY_REMINDERS = 'finance_buddy_recurring_reminders';
+function getRecurringReminders() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY_REMINDERS) || '[]').filter(r => r && r.id); }
+    catch (_) { return []; }
+}
+function saveRecurringReminders(items) {
+    localStorage.setItem(STORAGE_KEY_REMINDERS, JSON.stringify(items));
+    window.FinanceCloudSync?.scheduleSync('reminders');
+    renderRecurringReminders(); updateReminderBadge();
+}
+function dateAtLocalMidnight(dateString) {
+    const parts = String(dateString || '').split('-').map(Number);
+    return parts.length === 3 && parts.every(Number.isFinite) ? new Date(parts[0], parts[1]-1, parts[2]) : new Date();
+}
+function nextReminderDate(dateString, frequency) {
+    const d = dateAtLocalMidnight(dateString);
+    if (frequency === 'daily') d.setDate(d.getDate() + 1);
+    else if (frequency === 'weekly') d.setDate(d.getDate() + 7);
+    else if (frequency === 'monthly') { const day = d.getDate(); d.setDate(1); d.setMonth(d.getMonth()+1); d.setDate(Math.min(day, new Date(d.getFullYear(), d.getMonth()+1, 0).getDate())); }
+    else if (frequency === 'yearly') { const month = d.getMonth(), day = d.getDate(); d.setFullYear(d.getFullYear()+1); if (d.getMonth() !== month) d.setDate(0); }
+    return getLocalDateString(d);
+}
+function openRemindersModal() {
+    const modal = document.getElementById('reminders-modal'); if (!modal) return;
+    const date = document.getElementById('reminder-next-date'); if (date && !date.value) date.value = getLocalDateString();
+    renderRecurringReminders(); modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function closeRemindersModal() { const modal=document.getElementById('reminders-modal'); if(modal){modal.classList.add('hidden');modal.classList.remove('flex');} }
+function saveRecurringReminder(event) {
+    event.preventDefault();
+    const title = document.getElementById('reminder-title').value.trim();
+    const amount = Math.round(Number(document.getElementById('reminder-amount').value));
+    const nextDate = document.getElementById('reminder-next-date').value;
+    if (!title || !Number.isFinite(amount) || amount <= 0 || !nextDate) { appToast('Vui lòng nhập tên, số tiền và ngày nhắc hợp lệ.'); return; }
+    const items = getRecurringReminders();
+    items.push({ id: 'rem_' + Date.now(), title, amount, type: document.getElementById('reminder-type').value,
+      nextDate, frequency: document.getElementById('reminder-frequency').value,
+      note: document.getElementById('reminder-note').value.trim(), workspace: currentWorkspace === 'shared' ? 'shared' : activePerson,
+      createdAt: getLocalDateString(), active: true });
+    saveRecurringReminders(items);
+    document.getElementById('reminder-form').reset();
+    document.getElementById('reminder-next-date').value = getLocalDateString();
+}
+function renderRecurringReminders() {
+    const list = document.getElementById('reminder-list'); if (!list) return;
+    const items = getRecurringReminders().sort((a,b) => String(a.nextDate).localeCompare(String(b.nextDate)));
+    if (!items.length) { list.innerHTML = '<p class="text-sm text-slate-500 bg-slate-50 dark:bg-slate-900 rounded-xl p-4">Chưa có khoản nhắc nào. Thêm khoản ở biểu mẫu bên dưới.</p>'; return; }
+    const today = getLocalDateString();
+    list.innerHTML = items.map(r => {
+      const due = r.nextDate <= today;
+      const typeLabel = r.type === 'income' ? 'Thu nhập' : 'Chi tiêu';
+      const freq = ({daily:'Hàng ngày',monthly:'Hàng tháng',weekly:'Hàng tuần',yearly:'Hàng năm',none:'Không lặp lại'})[r.frequency] || 'Hàng tháng';
+      return `<div class="rounded-2xl border ${due ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20' : 'border-slate-200 dark:border-slate-700'} p-4">
+        <div class="flex items-start justify-between gap-3"><div class="min-w-0"><div class="font-extrabold break-words">${escapeHTML(r.title)} ${due ? '<span class="inline-block text-[10px] rounded-full px-2 py-1 bg-amber-200 text-amber-800">Đến hạn</span>' : ''}</div>
+        <div class="text-sm text-slate-500 dark:text-slate-400 mt-1">${formatCurrency(Number(r.amount)||0)} · ${typeLabel}</div><div class="text-xs text-slate-500 mt-1">Ngày nhắc: ${escapeHTML(r.nextDate)} · ${freq}</div>${r.note ? `<div class="text-sm mt-2">${escapeHTML(r.note)}</div>` : ''}</div>
+        <button type="button" onclick="deleteRecurringReminder('${String(r.id).replace(/'/g, '')}')" aria-label="Xóa khoản nhắc" class="shrink-0 rounded-lg p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30"><i class="fas fa-trash"></i></button></div>
+        ${due ? `<button type="button" onclick="confirmReminderTransaction('${String(r.id).replace(/'/g, '')}')" class="w-full mt-3 rounded-xl bg-brand-primary text-white font-extrabold p-3"><i class="fas fa-check mr-1"></i>Xác nhận và ghi giao dịch</button>` : ''}
+      </div>`;
+    }).join('');
+}
+function updateReminderBadge() {
+    const badge = document.getElementById('reminder-due-badge'); if (!badge) return;
+    const today = getLocalDateString(); const count = getRecurringReminders().filter(r => r.nextDate <= today).length;
+    badge.textContent = String(count); badge.classList.toggle('hidden', count === 0); badge.classList.toggle('flex', count > 0);
+}
+function confirmReminderTransaction(id) {
+    const items = getRecurringReminders(); const reminder = items.find(r => r.id === id); if (!reminder) return;
+    const dueDate = reminder.nextDate || getLocalDateString();
+    const confirmText = `Ghi giao dịch ${reminder.type === 'income' ? 'thu nhập' : 'chi tiêu'} “${reminder.title}” số tiền ${formatCurrency(Number(reminder.amount)||0)} với ngày ${dueDate}?`;
+    appConfirm(confirmText, { title: 'Xác nhận ghi giao dịch', confirmText: 'Xác nhận lưu', confirmClass: 'bg-emerald-600 hover:bg-emerald-700' }).then(accepted => { if (!accepted) return;
+    const type = reminder.type === 'income' ? 'income' : 'expense';
+    const fundList = getFunds();
+    let fund = fundList.find(f => f.type === 'shared' && (reminder.workspace === 'shared'));
+    if (!fund) fund = fundList.find(f => f.type !== 'shared') || fundList[0];
+    const cats = categoriesData[type] || [];
+    const defaultCategory = cats[0]?.id || (type === 'income' ? 'other-income' : 'other-expense');
+    const transaction = { id: Date.now(), type, workspace: reminder.workspace || activePerson, amount: Number(reminder.amount), account: fund?.id || 'main', category: defaultCategory, date: dueDate, tag: 'định kỳ', note: reminder.title + (reminder.note ? ' - ' + reminder.note : '') };
+    dbTransactions.unshift(transaction); saveTransactions(dbTransactions);
+    if (reminder.frequency === 'none') saveRecurringReminders(items.filter(r => r.id !== id));
+    else { reminder.nextDate = nextReminderDate(dueDate, reminder.frequency); saveRecurringReminders(items); }
+    appToast('Đã ghi giao dịch theo xác nhận của bạn.', 'success');
+    });
+}
+function deleteRecurringReminder(id) {
+    const item = getRecurringReminders().find(r => r.id === id);
+    appConfirm(`Xóa khoản nhắc “${item?.title || ''}”?`, { title: 'Xóa khoản nhắc', confirmText: 'Xóa khoản nhắc', confirmClass: 'bg-rose-600 hover:bg-rose-700' }).then(accepted => {
+      if (!accepted) return;
+      saveRecurringReminders(getRecurringReminders().filter(r => r.id !== id));
+      appToast('Đã xóa khoản nhắc.', 'success');
+    });
+}
+
 // --- 9. BỘ ĐIỀU PHỐI (ROUTER) KHI TRANG TẢI XONG ---
 document.addEventListener('DOMContentLoaded', () => {
     if (!['user1', 'user2', 'shared'].includes(currentWorkspace)) currentWorkspace = activePerson;
@@ -815,6 +919,26 @@ document.addEventListener('DOMContentLoaded', () => {
     setWorkspace(currentWorkspace); // Gọi setWorkspace tự động render Dashboard & Lịch sử
     
     if (document.getElementById('edit-form')) {
+        const dateInput = document.getElementById('input-date');
+        if (dateInput && !dateInput.value) dateInput.value = getLocalDateString();
         setEditType('expense');
+    }
+    const historySearch = document.getElementById('history-search');
+    if (historySearch) {
+        // Không phục hồi nội dung tìm kiếm từ trình duyệt; luôn bắt đầu trống.
+        historySearch.value = '';
+        currentHistorySearch = '';
+        historySearch.setAttribute('autocomplete', 'off');
+        setTimeout(() => { if (document.activeElement !== historySearch) historySearch.blur(); }, 0);
+    }
+    renderRecurringReminders();
+    updateReminderBadge();
+    // Nhắc trong ứng dụng khi mở trang chủ; không tự động ghi giao dịch.
+    const isHomePage = (window.location.pathname.split('/').pop() || 'index.html') === 'index.html';
+    const dueItems = getRecurringReminders().filter(r => r.nextDate <= getLocalDateString());
+    const reminderNoticeKey = 'finance_buddy_reminder_notice_' + getLocalDateString();
+    if (isHomePage && dueItems.length && localStorage.getItem(reminderNoticeKey) !== 'shown') {
+        localStorage.setItem(reminderNoticeKey, 'shown');
+        setTimeout(() => appToast(`Bạn có ${dueItems.length} khoản nhắc định kỳ đến hạn.`, 'info', { actionText: 'Xem khoản nhắc', onAction: openRemindersModal, duration: 9000 }), 350);
     }
 });

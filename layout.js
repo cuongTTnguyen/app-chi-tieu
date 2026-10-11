@@ -104,14 +104,35 @@
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight" id="menu-theme-text">Giao diện Tối</span>
                 </div>
 
-                <button type="button" onclick="openCloudSyncModal()" class="col-span-2 flex flex-col items-center justify-start space-y-2 cursor-pointer group">
+                <button type="button" onclick="openRemindersModal()" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
+                    <div class="relative w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-bell text-amber-600 dark:text-amber-300 text-2xl"></i><span id="reminder-due-badge" class="hidden absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold items-center justify-center">0</span></div>
+                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Nhắc định kỳ</span>
+                </button>
+                <button type="button" onclick="openCloudSyncModal()" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
                     <div class="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-cloud text-violet-600 dark:text-violet-300 text-2xl"></i></div>
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Đồng bộ Firebase</span>
                 </button>
-                <p class="col-span-4 text-xs text-center text-slate-400 mt-2">Các tính năng khác sẽ được bổ sung trong những bản cập nhật sau.</p>
+                <p class="col-span-4 text-xs text-center text-slate-400 mt-2">Nhắc định kỳ chỉ nhắc bạn kiểm tra; giao dịch chỉ được ghi khi bạn xác nhận.</p>
 
             </div>
         </div>
+    </div>
+
+    <!-- Quản lý nhắc chi tiêu định kỳ -->
+    <div id="reminders-modal" class="fixed inset-0 z-[125] hidden items-center justify-center p-3 sm:p-4 bg-slate-950/60" onclick="if(event.target===this)closeRemindersModal()">
+      <div class="w-full max-w-xl max-h-[92dvh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-800 p-5 sm:p-6 shadow-2xl">
+        <div class="flex items-center justify-between mb-2"><h3 class="text-xl font-extrabold"><i class="fas fa-bell text-amber-500 mr-2"></i>Nhắc khoản định kỳ</h3><button type="button" onclick="closeRemindersModal()" class="p-2 rounded-lg"><i class="fas fa-times"></i></button></div>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Ví dụ: tiền nhà, Internet, học phí, tiền điện. Ứng dụng không tự ghi giao dịch; bạn sẽ xác nhận trước.</p>
+        <div id="reminder-list" class="space-y-3 mb-5"><p class="text-sm text-slate-500">Chưa có khoản nhắc nào.</p></div>
+        <form id="reminder-form" onsubmit="saveRecurringReminder(event)" class="border-t border-slate-200 dark:border-slate-700 pt-4 space-y-3">
+          <h4 class="font-extrabold">Thêm khoản nhắc</h4>
+          <div><label for="reminder-title" class="block text-sm font-bold mb-1">Tên khoản chi/thu</label><input id="reminder-title" required maxlength="80" autocomplete="off" placeholder="Ví dụ: Tiền Internet" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3"></div>
+          <div class="grid grid-cols-2 gap-3"><div><label for="reminder-amount" class="block text-sm font-bold mb-1">Số tiền (VNĐ)</label><input id="reminder-amount" required type="number" min="1" step="1" inputmode="numeric" placeholder="300000" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3"></div><div><label for="reminder-type" class="block text-sm font-bold mb-1">Loại giao dịch</label><select id="reminder-type" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3"><option value="expense">Chi tiêu</option><option value="income">Thu nhập</option></select></div></div>
+          <div class="grid grid-cols-2 gap-3"><div><label for="reminder-next-date" class="block text-sm font-bold mb-1">Ngày nhắc đầu tiên</label><input id="reminder-next-date" type="date" required class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3"></div><div><label for="reminder-frequency" class="block text-sm font-bold mb-1">Lặp lại</label><select id="reminder-frequency" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3"><option value="daily">Hàng ngày</option><option value="monthly">Hàng tháng</option><option value="weekly">Hàng tuần</option><option value="yearly">Hàng năm</option><option value="none">Không lặp lại</option></select></div></div>
+          <div><label for="reminder-note" class="block text-sm font-bold mb-1">Ghi chú (không bắt buộc)</label><input id="reminder-note" maxlength="200" autocomplete="off" placeholder="Thông tin thêm" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3"></div>
+          <div class="flex gap-3"><button type="button" onclick="closeRemindersModal()" class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-700 font-bold p-3">Đóng</button><button type="submit" class="flex-1 rounded-xl bg-brand-primary text-white font-extrabold p-3"><i class="fas fa-plus mr-1"></i>Lưu khoản nhắc</button></div>
+        </form>
+      </div>
     </div>
 
     <!-- Cửa sổ kết nối Firebase: tài khoản đồng bộ đám mây riêng với lựa chọn Người A/B -->
@@ -133,6 +154,48 @@
     // 4. "Tiêm" mã HTML vào thân trang web
     document.body.insertAdjacentHTML('afterbegin', sidebarHTML);
     document.body.insertAdjacentHTML('beforeend', overlayAndBottomNavHTML);
+
+    // Toast + hộp xác nhận tuỳ biến, không dùng alert/confirm của trình duyệt.
+    const interactionUI = `
+      <div id="app-toast-region" class="fixed top-4 right-4 z-[220] flex flex-col gap-3 w-[min(92vw,390px)] pointer-events-none" aria-live="polite" aria-atomic="false"></div>
+      <div id="app-confirm-modal" class="fixed inset-0 z-[230] hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">
+        <div class="w-full max-w-md rounded-3xl bg-white dark:bg-slate-800 p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
+          <div class="flex items-start gap-3 mb-3"><div class="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shrink-0"><i class="fas fa-circle-question text-xl"></i></div><div class="min-w-0"><h3 id="app-confirm-title" class="text-lg font-extrabold">Xác nhận thao tác</h3><p id="app-confirm-message" class="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line"></p></div></div>
+          <div class="flex gap-3 mt-5"><button id="app-confirm-cancel" type="button" class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold p-3">Để sau</button><button id="app-confirm-accept" type="button" class="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold p-3 transition-colors">Xác nhận lưu</button></div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', interactionUI);
+    window.appToast = function(message, type = 'info', options = {}) {
+      const region = document.getElementById('app-toast-region'); if (!region) return;
+      const colors = {success:'border-emerald-400', error:'border-rose-400', info:'border-brand-primary', warning:'border-amber-400'};
+      const icons = {success:'fa-circle-check text-emerald-500', error:'fa-circle-exclamation text-rose-500', info:'fa-circle-info text-brand-primary', warning:'fa-triangle-exclamation text-amber-500'};
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto rounded-2xl border-l-4 ${colors[type] || colors.info} bg-white dark:bg-slate-800 shadow-xl p-4 flex gap-3 items-start`;
+      const content = document.createElement('div'); content.className = 'flex-1 min-w-0';
+      const msg = document.createElement('p'); msg.className = 'text-sm font-semibold text-slate-800 dark:text-slate-100 whitespace-pre-line'; msg.textContent = String(message || ''); content.appendChild(msg);
+      if (options.actionText && typeof options.onAction === 'function') { const action = document.createElement('button'); action.type='button'; action.className='mt-2 text-sm font-extrabold text-brand-primary underline'; action.textContent=options.actionText; action.addEventListener('click',()=>{ options.onAction(); toast.remove(); }); content.appendChild(action); }
+      const icon = document.createElement('i'); icon.className = `fas ${icons[type] || icons.info} text-lg mt-0.5`;
+      const close = document.createElement('button'); close.type='button'; close.className='text-slate-400 hover:text-slate-700 dark:hover:text-white'; close.setAttribute('aria-label','Đóng thông báo'); close.innerHTML='<i class="fas fa-times"></i>'; close.addEventListener('click',()=>toast.remove());
+      toast.append(icon, content, close); region.appendChild(toast);
+      window.setTimeout(()=>{ if(toast.isConnected) toast.remove(); }, Number(options.duration) || 4000);
+    };
+    window.appConfirm = function(message, options = {}) {
+      return new Promise(resolve => {
+        const modal = document.getElementById('app-confirm-modal');
+        if (!modal) { resolve(false); return; }
+        const title = document.getElementById('app-confirm-title'), text = document.getElementById('app-confirm-message');
+        const cancel = document.getElementById('app-confirm-cancel'), accept = document.getElementById('app-confirm-accept');
+        title.textContent = options.title || 'Xác nhận thao tác'; text.textContent = String(message || 'Bạn có muốn tiếp tục?');
+        accept.textContent = options.confirmText || 'Xác nhận lưu';
+        accept.className = `flex-1 rounded-xl text-white font-extrabold p-3 transition-colors ${options.confirmClass || 'bg-emerald-600 hover:bg-emerald-700'}`;
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+        const finish = value => { modal.classList.add('hidden'); modal.classList.remove('flex'); cancel.removeEventListener('click', onCancel); accept.removeEventListener('click', onAccept); modal.removeEventListener('click', onBackdrop); document.removeEventListener('keydown', onKey); resolve(value); };
+        const onCancel = () => finish(false), onAccept = () => finish(true), onBackdrop = e => { if(e.target === modal) finish(false); }, onKey = e => { if(e.key === 'Escape') finish(false); };
+        cancel.addEventListener('click', onCancel); accept.addEventListener('click', onAccept); modal.addEventListener('click', onBackdrop); document.addEventListener('keydown', onKey);
+        accept.focus();
+      });
+    };
+
 
     // Cập nhật lại Avatar trên Header cho Mobile sau khi DOM render xong
     setTimeout(() => {

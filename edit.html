@@ -162,5 +162,6 @@
     <script src="firebase-sync.js"></script>
     <script src="layout.js"></script>
     <script src="app.js"></script>
+    <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA service worker:', err)));</script>
 </body>
 </html>
