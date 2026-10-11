@@ -138,11 +138,23 @@
     };
     return codes[e.code] || e.message || 'Lỗi không xác định.';
   }
-  window.FinanceCloudSync = {
-    scheduleSync: function () {
-      if (applyingRemote || !auth?.currentUser || !db) return;
-      dirty = true; clearTimeout(timer);
-      timer = setTimeout(() => writeCloud(auth.currentUser).catch(e => status('Đồng bộ thất bại: ' + e.message, true)), 900);
-    }
-  };
+   
+window.FinanceCloudSync = {
+  init: init,
+
+  scheduleSync: function () {
+    if (applyingRemote || !auth?.currentUser || !db) return;
+
+    dirty = true;
+    clearTimeout(timer);
+
+    timer = setTimeout(() => {
+      writeCloud(auth.currentUser).catch(e => {
+        status('Đồng bộ thất bại: ' + e.message, true);
+      });
+    }, 900);
+  }
+};
+
+init();
 })();
