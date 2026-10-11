@@ -3,14 +3,18 @@ const STORAGE_KEY_TX = 'finance_buddy_transactions';
 const STORAGE_KEY_THEME = 'finance_buddy_theme';
 const STORAGE_KEY_CATEGORIES = 'finance_buddy_categories';
 const STORAGE_KEY_WORKSPACE = 'finance_buddy_workspace';
+const STORAGE_KEY_ACTIVE_PERSON = 'finance_buddy_active_person';
 const STORAGE_KEY_PROFILES = 'finance_buddy_profiles';
 
-let currentTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'dark';
+let currentTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'system';
 let chartMode = 'expense'; 
 let editMode = 'expense';  
 let myChartInstance = null;
 
-let currentWorkspace = localStorage.getItem(STORAGE_KEY_WORKSPACE) || 'user1'; 
+let currentWorkspace = localStorage.getItem(STORAGE_KEY_WORKSPACE) || 'user1';
+// Người đang sử dụng được lưu riêng với màn hình đang xem (cá nhân hoặc Quỹ Chung).
+let activePerson = localStorage.getItem(STORAGE_KEY_ACTIVE_PERSON) || (currentWorkspace === 'user2' ? 'user2' : 'user1');
+if (!['user1', 'user2'].includes(activePerson)) activePerson = 'user1'; 
 let userProfiles = JSON.parse(localStorage.getItem(STORAGE_KEY_PROFILES)) || {
     user1: { name: 'Người A', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4' },
     user2: { name: 'Người B', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka&backgroundColor=ffdfbf' },
@@ -20,6 +24,7 @@ let userProfiles = JSON.parse(localStorage.getItem(STORAGE_KEY_PROFILES)) || {
 function saveProfiles() {
     localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(userProfiles));
     updateLayoutProfile();
+    window.FinanceCloudSync?.scheduleSync('profiles');
 }
 
 // Dữ liệu danh mục mặc định
@@ -54,6 +59,7 @@ let categoriesData = getCategories();
 function saveCategories(data) {
     localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(data));
     categoriesData = data;
+    window.FinanceCloudSync?.scheduleSync('categories');
 }
 
 // Hàm lấy dữ liệu Giao dịch từ LocalStorage
@@ -74,12 +80,91 @@ let dbTransactions = getTransactions();
 function saveTransactions(data) {
     localStorage.setItem(STORAGE_KEY_TX, JSON.stringify(data));
     dbTransactions = data;
+    window.FinanceCloudSync?.scheduleSync('transactions');
 }
 
 // Lọc dữ liệu theo Không gian hiện tại
 function getWorkspaceTransactions() {
-    return dbTransactions.filter(t => !t.workspace || t.workspace === currentWorkspace);
+    return dbTransactions.filter(t => t.workspace === currentWorkspace);
 }
+
+// Gán giao dịch cũ chưa có chủ sở hữu một lần, để chúng không bị hiện lẫn ở cả A và B.
+function normalizeLegacyTransactions() {
+    let changed = false;
+    const funds = getFunds();
+    dbTransactions = dbTransactions.map(t => {
+        if (t.workspace) return t;
+        changed = true;
+        const fund = funds.find(f => f.id === t.account);
+        return { ...t, workspace: fund?.type === 'shared' ? 'shared' : activePerson };
+    });
+    if (changed) saveTransactions(dbTransactions);
+}
+
+// --- QUẢN LÝ QUỸ/TÀI KHOẢN ---
+const STORAGE_KEY_FUNDS = 'finance_buddy_funds';
+function getFunds() {
+    const saved = localStorage.getItem(STORAGE_KEY_FUNDS);
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
+    const defaults = [
+        {id:'main', name:'Tài Khoản Chính', type:'personal'},
+        {id:'cash', name:'Tiền Mặt', type:'personal'},
+        {id:'savings', name:'Quỹ Tiết Kiệm', type:'personal'},
+        {id:'shared-main', name:'Quỹ Chung', type:'shared'}
+    ];
+    localStorage.setItem(STORAGE_KEY_FUNDS, JSON.stringify(defaults));
+    return defaults;
+}
+function saveFunds(funds) { localStorage.setItem(STORAGE_KEY_FUNDS, JSON.stringify(funds)); renderFundOptions(); window.FinanceCloudSync?.scheduleSync('funds'); }
+function renderFundOptions() {
+    const select = document.getElementById('input-account'); if (!select) return;
+    const old = select.value;
+    select.innerHTML = getFunds().map(f => `<option value="${escapeHTML(f.id)}">${escapeHTML(f.name)}${f.type === 'shared' ? ' · Quỹ chung' : ''}</option>`).join('');
+    if (getFunds().some(f => f.id === old)) select.value = old;
+    else select.value = getFunds().find(f => f.type === 'personal')?.id || 'main';
+}
+function escapeHTML(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function openFundManager() { renderFundManager(); const m=document.getElementById('fund-manager-modal'); if(m) { m.classList.remove('hidden'); m.classList.add('flex'); } }
+function closeFundManager() { const m=document.getElementById('fund-manager-modal'); if(m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
+function renderFundManager() {
+    const list=document.getElementById('fund-manager-list'); if(!list) return;
+    list.innerHTML=getFunds().map(f=>`<div class="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"><div class="flex-1 min-w-0"><div class="font-bold">${escapeHTML(f.name)}</div><div class="text-xs text-slate-500">${f.type==='shared'?'Quỹ chung':'Ví cá nhân'}</div></div><button type="button" onclick="editFund('${escapeHTML(f.id)}')" class="px-3 py-2 rounded-lg text-brand-primary font-bold">Sửa</button><button type="button" onclick="deleteFund('${escapeHTML(f.id)}')" class="px-3 py-2 rounded-lg text-rose-500 font-bold">Xóa</button></div>`).join('');
+}
+function addFund() {
+    const nameEl=document.getElementById('new-fund-name'), typeEl=document.getElementById('new-fund-type');
+    const name=nameEl?.value.trim(); if(!name){alert('Vui lòng nhập tên quỹ.');return;}
+    const funds=getFunds(); funds.push({id:'fund_'+Date.now(),name,type:typeEl?.value==='shared'?'shared':'personal'}); saveFunds(funds); nameEl.value=''; renderFundManager();
+}
+function editFund(id) {
+    const funds=getFunds(), fund=funds.find(f=>f.id===id); if(!fund)return;
+    const name=prompt('Tên quỹ mới:',fund.name); if(name===null)return; if(!name.trim()){alert('Tên quỹ không được để trống.');return;}
+    const type=prompt('Loại quỹ: nhập "personal" cho ví cá nhân hoặc "shared" cho quỹ chung.',fund.type); if(type===null)return;
+    const nextType=type.toLowerCase()==='shared'?'shared':'personal';
+    if (nextType !== fund.type && dbTransactions.some(t => t.account === id)) { alert('Quỹ đã có giao dịch nên không thể đổi loại để tránh chuyển nhầm dữ liệu giữa cá nhân và quỹ chung. Bạn vẫn có thể đổi tên quỹ.'); return; }
+    fund.name=name.trim(); fund.type=nextType; saveFunds(funds); renderFundManager();
+}
+function deleteFund(id) {
+    const funds=getFunds(), fund=funds.find(f=>f.id===id); if(!fund)return;
+    if(dbTransactions.some(t=>t.account===id)){alert('Quỹ này đang được giao dịch sử dụng. Hãy sửa các giao dịch liên quan trước khi xóa để tránh mất liên kết.');return;}
+    if(!confirm(`Xóa quỹ “${fund.name}”?`))return;
+    saveFunds(funds.filter(f=>f.id!==id)); renderFundManager();
+}
+function saveCurrentProfile() {
+    const input=document.getElementById('profile-display-name'); if(!input)return;
+    const name=input.value.trim(); if(!name){alert('Vui lòng nhập tên hiển thị.');return;}
+    if(currentWorkspace==='shared'){alert('Hãy chọn Người A hoặc Người B để chỉnh sửa hồ sơ cá nhân.');return;}
+    userProfiles[currentWorkspace].name=name; saveProfiles(); alert('Đã lưu hồ sơ.');
+}
+const AVATAR_CHOICES = [
+    ['Felix','avataaars'],['Aneka','avataaars'],['Mimi','avataaars'],['Jasper','avataaars'],['Luna','avataaars'],['Oliver','avataaars'],['Sasha','avataaars'],['Nala','avataaars'],['Boo','bottts'],['Pixel','bottts'],['Nova','bottts'],['Comet','bottts'],['Sunny','fun-emoji'],['Happy','fun-emoji'],['Clover','lorelei'],['Robin','lorelei'],['Sky','notionists'],['River','notionists'],['Mint','thumbs'],['Berry','thumbs']
+];
+function openAvatarPicker(){
+    let modal=document.getElementById('avatar-picker-modal'); if(!modal)return;
+    const grid=document.getElementById('avatar-picker-grid');
+    grid.innerHTML=AVATAR_CHOICES.map(([seed,style])=>{const url=`https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;return `<button type="button" onclick="chooseAvatar('${url}')" class="rounded-2xl p-2 border border-slate-200 dark:border-slate-700 hover:border-brand-primary hover:bg-brand-primary/10"><img class="w-14 h-14 rounded-full mx-auto" src="${url}" alt="Avatar ${seed}"><span class="text-xs font-bold block mt-1">${seed}</span></button>`}).join('');
+    modal.classList.remove('hidden'); modal.classList.add('flex');
+}
+function chooseAvatar(url){if(currentWorkspace==='shared'){alert('Hãy chọn Người A hoặc Người B để đổi ảnh đại diện.');return;}userProfiles[currentWorkspace].avatar=url;saveProfiles();const m=document.getElementById('avatar-picker-modal');if(m){m.classList.add('hidden');m.classList.remove('flex');}}
 
 // --- 2. CÁC HÀM TIỆN ÍCH ---
 const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
@@ -95,6 +180,7 @@ function formatCurrencyInput(input) {
 // --- 3. ĐIỀU KHIỂN GIAO DIỆN CHUNG (THEME & SIDEBAR) ---
 function applyTheme() {
     const html = document.documentElement;
+    const effectiveTheme = currentTheme === 'system' ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : currentTheme;
     const icon = document.getElementById('theme-icon');
     const text = document.getElementById('theme-text');
     const container = document.getElementById('theme-icon-container');
@@ -103,7 +189,7 @@ function applyTheme() {
     const menuThemeIcon = document.getElementById('menu-theme-icon'); 
     const menuThemeText = document.getElementById('menu-theme-text'); 
     
-    if (currentTheme === 'dark') {
+    if (effectiveTheme === 'dark') {
         html.classList.add('dark');
         if(icon) {
             icon.className = 'fas fa-moon text-brand-primary text-lg';
@@ -131,7 +217,8 @@ function applyTheme() {
 }
 
 function toggleTheme() {
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    const effectiveTheme = currentTheme === 'system' ? (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : currentTheme;
+    currentTheme = effectiveTheme === 'dark' ? 'light' : 'dark';
     localStorage.setItem(STORAGE_KEY_THEME, currentTheme);
     applyTheme();
     if (document.getElementById('mainChart')) updateChartData();
@@ -139,22 +226,36 @@ function toggleTheme() {
 
 // --- LOGIC ĐỔI KHÔNG GIAN NGƯỜI DÙNG ---
 function setWorkspace(ws) {
+    if (!['user1', 'user2', 'shared'].includes(ws)) ws = activePerson;
     currentWorkspace = ws;
+    // Chỉ cập nhật người đang sử dụng khi chọn A/B; xem Quỹ Chung không làm đổi chủ giao dịch cá nhân.
+    if (ws === 'user1' || ws === 'user2') {
+        activePerson = ws;
+        localStorage.setItem(STORAGE_KEY_ACTIVE_PERSON, activePerson);
+    }
     localStorage.setItem(STORAGE_KEY_WORKSPACE, ws);
     
     const indicator = document.getElementById('workspace-indicator');
     if (indicator) {
-        const tabs = ['user1', 'user2', 'shared'];
+        const tabs = ['user1', 'user2'];
         tabs.forEach((tab, index) => {
             const btn = document.getElementById(`tab-ws-${tab}`);
+            if (!btn) return;
             if (ws === tab) {
                 indicator.style.transform = `translateX(${index * 100}%)`;
+                indicator.classList.remove('hidden');
                 btn.className = 'flex-1 py-2 text-sm font-bold z-10 transition-colors text-brand-primary';
             } else {
                 btn.className = 'flex-1 py-2 text-sm font-bold z-10 transition-colors text-slate-500 dark:text-slate-400';
             }
         });
+        if (ws === 'shared') indicator.classList.add('hidden');
     }
+    document.querySelectorAll('[data-shared-workspace-button]').forEach(btn => {
+        btn.classList.toggle('bg-brand-primary', ws === 'shared');
+        btn.classList.toggle('text-white', ws === 'shared');
+        btn.classList.toggle('text-brand-primary', ws !== 'shared');
+    });
 
     updateLayoutProfile();
     updateSidebarBalance();
@@ -163,16 +264,18 @@ function setWorkspace(ws) {
 }
 
 function updateLayoutProfile() {
-    const profile = userProfiles[currentWorkspace];
+    const profile = userProfiles[currentWorkspace] || userProfiles[activePerson] || userProfiles.user1;
     document.querySelectorAll('.layout-user-name').forEach(el => el.textContent = profile.name);
     document.querySelectorAll('.layout-user-avatar').forEach(el => el.src = profile.avatar);
+    const profileNameInput = document.getElementById('profile-display-name');
+    if (profileNameInput && currentWorkspace !== 'shared') profileNameInput.value = profile.name;
     
     const t1 = document.getElementById('tab-ws-user1');
     if(t1) t1.textContent = userProfiles.user1.name;
     const t2 = document.getElementById('tab-ws-user2');
     if(t2) t2.textContent = userProfiles.user2.name;
-    const ts = document.getElementById('tab-ws-shared');
-    if(ts) ts.textContent = userProfiles.shared.name;
+    const sharedLabel = document.getElementById('shared-workspace-label');
+    if (sharedLabel) sharedLabel.textContent = userProfiles.shared.name;
 }
 
 function updateSidebarBalance() {
@@ -438,12 +541,15 @@ function handleFormSubmit(e) {
     const amt = parseCurrency(amtStr);
     if(amt <= 0) return;
 
+    const selectedFundId = document.getElementById('input-account').value;
+    const selectedFund = getFunds().find(f => f.id === selectedFundId);
+    // Giao dịch cá nhân luôn thuộc người đã chọn gần nhất; không tự rơi về Người A khi đang xem Quỹ Chung.
     const newTx = {
         id: Date.now(),
         type: editMode,
-        workspace: currentWorkspace,
+        workspace: selectedFund && selectedFund.type === 'shared' ? 'shared' : activePerson,
         amount: amt,
-        account: document.getElementById('input-account').value,
+        account: selectedFundId,
         category: cat,
         date: document.getElementById('input-date').value,
         tag: document.getElementById('input-tag').value,
@@ -569,7 +675,7 @@ function renderHistoryList() {
             const isExp = t.type === 'expense';
             const sign = isExp ? '-' : '+';
             const amtClass = isExp ? 'text-brand-expense' : 'text-brand-income';
-            const accName = t.account === 'main' ? 'TK Chính' : (t.account === 'cash' ? 'Tiền Mặt' : 'Tiết Kiệm');
+            const accName = (getFunds().find(f => f.id === t.account) || {}).name || ({main:'Tài Khoản Chính', cash:'Tiền Mặt', savings:'Quỹ Tiết Kiệm'}[t.account] || t.account || 'Chưa phân loại');
 
             hHTML += `
                 <div class="flex items-center justify-between px-6 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group bg-white dark:bg-transparent">
@@ -600,17 +706,18 @@ function renderHistoryList() {
 function toggleHistoryView() {
     const list = document.getElementById('history-list');
     const btn = document.getElementById('btn-view-all-history');
-    
-    if (list) {
-        if (list.classList.contains('max-h-[500px]')) {
-            list.classList.remove('max-h-[500px]');
-            list.classList.add('max-h-none');
-            if (btn) btn.innerHTML = 'Thu gọn <i class="fas fa-chevron-up text-xs ml-1"></i>';
-        } else {
-            list.classList.remove('max-h-none');
-            list.classList.add('max-h-[500px]');
-            if (btn) btn.innerHTML = 'Xem tất cả <i class="fas fa-chevron-down text-xs ml-1"></i>';
-        }
+    if (!list) return;
+    const expanded = list.dataset.expanded === 'true';
+    if (!expanded) {
+        list.dataset.expanded = 'true';
+        list.style.maxHeight = 'none';
+        list.style.overflowY = 'visible';
+        if (btn) btn.innerHTML = 'Thu gọn <i class="fas fa-chevron-up text-xs ml-1"></i>';
+    } else {
+        list.dataset.expanded = 'false';
+        list.style.maxHeight = '500px';
+        list.style.overflowY = 'auto';
+        if (btn) btn.innerHTML = 'Xem tất cả <i class="fas fa-chevron-down text-xs ml-1"></i>';
     }
 }
 
@@ -697,8 +804,14 @@ function closeFeatureMenu() {
 
 // --- 9. BỘ ĐIỀU PHỐI (ROUTER) KHI TRANG TẢI XONG ---
 document.addEventListener('DOMContentLoaded', () => {
+    if (!['user1', 'user2', 'shared'].includes(currentWorkspace)) currentWorkspace = activePerson;
+    normalizeLegacyTransactions();
     applyTheme();
+    if (currentTheme === 'system' && window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
     updateLayoutProfile();
+    renderFundOptions();
+    const profileNameInput = document.getElementById('profile-display-name');
+    if (profileNameInput && currentWorkspace !== 'shared') profileNameInput.value = userProfiles[currentWorkspace].name;
     setWorkspace(currentWorkspace); // Gọi setWorkspace tự động render Dashboard & Lịch sử
     
     if (document.getElementById('edit-form')) {

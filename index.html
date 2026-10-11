@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="dark">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,6 +102,12 @@
     </main>
 
     <!-- TRÌNH TỰ SCRIPT: Layout Helper luôn phải đứng trước app.js -->
+    <!-- Firebase đồng bộ đám mây (tùy chọn; cần cấu hình firebase-config.js) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-sync.js"></script>
     <script src="layout.js"></script>
     <script src="app.js"></script>
 </body>

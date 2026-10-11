@@ -94,7 +94,7 @@
         <div class="bg-white dark:bg-slate-800 rounded-t-3xl md:rounded-3xl w-full md:max-w-sm p-6 relative z-10 shadow-bubbly dark:shadow-bubbly-dark transition-transform duration-300 transform translate-y-full" id="feature-menu-content">
             <div class="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-6 md:hidden"></div>
             
-            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-6">Tính Năng Mở Rộng</h3>
+            <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-6">Thanh Tính Năng</h3>
 
             <div class="grid grid-cols-4 gap-4">
                 <div onclick="toggleTheme()" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
@@ -104,20 +104,28 @@
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight" id="menu-theme-text">Giao diện Tối</span>
                 </div>
 
-                <div class="flex flex-col items-center justify-start space-y-2 cursor-pointer group opacity-50">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shadow-sm">
-                        <i class="fas fa-file-excel text-slate-500 text-2xl"></i>
-                    </div>
-                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Xuất Excel</span>
-                </div>
-                
-                <div class="flex flex-col items-center justify-start space-y-2 cursor-pointer group opacity-50">
-                    <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shadow-sm">
-                        <i class="fas fa-bell text-slate-500 text-2xl"></i>
-                    </div>
-                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Nhắc nhở</span>
-                </div>
+                <button type="button" onclick="openCloudSyncModal()" class="col-span-2 flex flex-col items-center justify-start space-y-2 cursor-pointer group">
+                    <div class="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-cloud text-violet-600 dark:text-violet-300 text-2xl"></i></div>
+                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Đồng bộ Firebase</span>
+                </button>
+                <p class="col-span-4 text-xs text-center text-slate-400 mt-2">Các tính năng khác sẽ được bổ sung trong những bản cập nhật sau.</p>
+
             </div>
+        </div>
+    </div>
+
+    <!-- Cửa sổ kết nối Firebase: tài khoản đồng bộ đám mây riêng với lựa chọn Người A/B -->
+    <div id="cloud-sync-modal" class="fixed inset-0 z-[130] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onclick="closeCloudSyncModal()"></div>
+        <div class="relative z-10 w-full max-w-md rounded-3xl bg-white dark:bg-slate-800 p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-extrabold">Đồng bộ Firebase</h3><button type="button" onclick="closeCloudSyncModal()" class="p-2 rounded-lg"><i class="fas fa-times"></i></button></div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">Dùng cùng một tài khoản đồng bộ trên các thiết bị. Lựa chọn Người A/Người B vẫn được lưu riêng trên từng thiết bị.</p>
+            <label for="cloud-email" class="block text-sm font-bold mb-1">Email đồng bộ</label><input id="cloud-email" type="email" autocomplete="email" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3 mb-3" placeholder="ban@example.com">
+            <label for="cloud-password" class="block text-sm font-bold mb-1">Mật khẩu</label><input id="cloud-password" type="password" autocomplete="current-password" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3 mb-3" placeholder="Ít nhất 6 ký tự">
+            <div id="cloud-sync-status" role="status" class="text-sm rounded-xl bg-slate-100 dark:bg-slate-900 p-3 mb-4">Chưa kết nối. Cần cấu hình Firebase trước.</div>
+            <div class="grid grid-cols-2 gap-3"><button type="button" onclick="signInCloud()" class="rounded-xl bg-brand-primary text-white font-bold p-3">Đăng nhập đồng bộ</button><button type="button" onclick="createCloudAccount()" class="rounded-xl border border-brand-primary text-brand-primary font-bold p-3">Tạo tài khoản</button></div>
+            <button type="button" onclick="signOutCloud()" class="w-full mt-3 rounded-xl bg-slate-100 dark:bg-slate-700 font-bold p-3">Ngắt kết nối</button>
+            <p class="text-xs text-slate-500 mt-3">Tài khoản này chỉ xác thực việc đồng bộ dữ liệu Firebase; không thay thế lựa chọn Người A/Người B trong ứng dụng.</p>
         </div>
     </div>
     `;

@@ -1,0 +1,146 @@
+/* Finance Buddy - Firebase cloud sync (Firebase compat SDK) */
+(function () {
+  const DATA_KEYS = {
+    transactions: 'finance_buddy_transactions',
+    categories: 'finance_buddy_categories',
+    profiles: 'finance_buddy_profiles',
+    funds: 'finance_buddy_funds'
+  };
+  let auth = null, db = null, unsubscribe = null, initialized = false;
+  let dirty = false, applyingRemote = false, lastFingerprint = '', timer = null;
+
+  const status = (message, error = false) => {
+    const el = document.getElementById('cloud-sync-status');
+    if (!el) return;
+    el.textContent = message;
+    el.className = 'text-sm rounded-xl p-3 mb-4 ' + (error
+      ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+      : 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300');
+  };
+  const configured = () => {
+    const c = window.FINANCE_FIREBASE_CONFIG;
+    return c && c.apiKey && c.projectId && c.appId && !String(c.apiKey).startsWith('YOUR_') && !String(c.projectId).startsWith('YOUR_');
+  };
+  function init() {
+    if (initialized && auth && db) return true;
+    if (!configured()) { status('Chưa cấu hình Firebase. Hãy điền firebase-config.js và bật Email/Password Authentication cùng Cloud Firestore.', true); return false; }
+    if (!window.firebase) { status('Không tải được Firebase SDK. Kiểm tra kết nối Internet.', true); return false; }
+    try {
+      if (!firebase.apps.length) firebase.initializeApp(window.FINANCE_FIREBASE_CONFIG);
+      auth = firebase.auth(); db = firebase.firestore(); initialized = true;
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          status('Đã đăng nhập đồng bộ: ' + (user.email || user.uid));
+          attachCloud(user).catch(e => status('Không thể đồng bộ: ' + e.message, true));
+        } else {
+          if (unsubscribe) unsubscribe(); unsubscribe = null;
+          status('Chưa kết nối Firebase.');
+        }
+      });
+      return true;
+    } catch (e) { status('Lỗi khởi tạo Firebase: ' + e.message, true); return false; }
+  }
+  function collectLocal() {
+    const result = {};
+    Object.entries(DATA_KEYS).forEach(([name, key]) => {
+      const raw = localStorage.getItem(key);
+      if (raw !== null) { try { result[name] = JSON.parse(raw); } catch (_) { result[name] = null; } }
+    });
+    return result;
+  }
+  function fingerprint(data) { return JSON.stringify(data || {}); }
+  function applyRemote(data) {
+    applyingRemote = true;
+    Object.entries(DATA_KEYS).forEach(([name, key]) => {
+      if (Object.prototype.hasOwnProperty.call(data || {}, name)) localStorage.setItem(key, JSON.stringify(data[name]));
+    });
+    lastFingerprint = fingerprint(collectLocal()); dirty = false; applyingRemote = false;
+  }
+  function docRef() {
+    return db.collection('financeBuddyHouseholds').doc(window.FINANCE_FIREBASE_HOUSEHOLD_ID || 'finance-buddy-household-main');
+  }
+  async function writeCloud(user) {
+    if (!db || !user || applyingRemote) return;
+    const data = collectLocal();
+    await docRef().set({ ownerUid: user.uid, data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    lastFingerprint = fingerprint(data); dirty = false;
+    status('Đã đồng bộ dữ liệu lên Firebase lúc ' + new Date().toLocaleTimeString('vi-VN'));
+  }
+  async function attachCloud(user) {
+    if (unsubscribe) unsubscribe();
+    const ref = docRef();
+    const snap = await ref.get();
+    if (!snap.exists) {
+      if (confirm('Chưa có dữ liệu trên Firebase. Tải dữ liệu đang có trên thiết bị này lên đám mây?')) await writeCloud(user);
+      else status('Chưa có dữ liệu đám mây. Dữ liệu trên thiết bị được giữ nguyên.');
+    } else {
+      const remote = snap.data();
+      if (remote.ownerUid !== user.uid) throw new Error('Tài khoản này không có quyền với bộ dữ liệu đồng bộ đã chọn.');
+      const useCloud = confirm('Đã tìm thấy dữ liệu Firebase. Nhấn OK để dùng dữ liệu trên đám mây (thay dữ liệu cục bộ trên thiết bị này); nhấn Hủy để giữ dữ liệu cục bộ và tải nó lên đám mây.');
+      if (useCloud) { applyRemote(remote.data || {}); location.reload(); return; }
+      await writeCloud(user);
+    }
+    unsubscribe = ref.onSnapshot(snapshot => {
+      if (!snapshot.exists || !auth.currentUser) return;
+      const remote = snapshot.data();
+      if (remote.ownerUid !== auth.currentUser.uid) { status('Tài khoản không có quyền đọc bộ dữ liệu này.', true); return; }
+      const remoteFingerprint = fingerprint(remote.data || {});
+      if (remoteFingerprint === lastFingerprint) return;
+      if (dirty) {
+        const useRemote = confirm('Phát hiện dữ liệu thay đổi trên thiết bị khác trong khi thiết bị này cũng có thay đổi. Nhấn OK để dùng bản đám mây; nhấn Hủy để giữ bản trên thiết bị này và gửi lên đám mây.');
+        if (useRemote) { applyRemote(remote.data || {}); location.reload(); }
+        else writeCloud(auth.currentUser).catch(e => status('Không thể ghi dữ liệu: ' + e.message, true));
+      } else {
+        applyRemote(remote.data || {}); status('Dữ liệu mới từ thiết bị khác đã được đồng bộ.'); location.reload();
+      }
+    }, e => status('Lỗi theo dõi đồng bộ: ' + e.message, true));
+  }
+  window.openCloudSyncModal = function () {
+    const modal = document.getElementById('cloud-sync-modal');
+    if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    if (!auth) init();
+    if (auth && auth.currentUser) status('Đã đăng nhập đồng bộ: ' + (auth.currentUser.email || auth.currentUser.uid));
+  };
+  window.closeCloudSyncModal = function () {
+    const modal = document.getElementById('cloud-sync-modal');
+    if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  };
+  window.signInCloud = async function () {
+    if (!init() || !auth) return;
+    const email = document.getElementById('cloud-email')?.value.trim();
+    const password = document.getElementById('cloud-password')?.value;
+    if (!email || !password) return status('Vui lòng nhập email và mật khẩu.', true);
+    try { await auth.signInWithEmailAndPassword(email, password); }
+    catch (e) { status('Đăng nhập thất bại: ' + friendlyError(e), true); }
+  };
+  window.createCloudAccount = async function () {
+    if (!init() || !auth) return;
+    const email = document.getElementById('cloud-email')?.value.trim();
+    const password = document.getElementById('cloud-password')?.value;
+    if (!email || !password || password.length < 6) return status('Nhập email hợp lệ và mật khẩu ít nhất 6 ký tự.', true);
+    try { await auth.createUserWithEmailAndPassword(email, password); }
+    catch (e) { status('Không tạo được tài khoản: ' + friendlyError(e), true); }
+  };
+  window.signOutCloud = async function () {
+    if (auth) { try { await auth.signOut(); if (unsubscribe) unsubscribe(); unsubscribe = null; status('Đã ngắt kết nối Firebase. Dữ liệu cục bộ vẫn được giữ.'); } catch (e) { status(e.message, true); } }
+    else status('Chưa có kết nối Firebase.');
+  };
+  function friendlyError(e) {
+    const codes = {
+      'auth/email-already-in-use': 'Email đã được đăng ký.',
+      'auth/invalid-email': 'Email không hợp lệ.',
+      'auth/weak-password': 'Mật khẩu quá yếu.',
+      'auth/invalid-credential': 'Email hoặc mật khẩu không đúng.',
+      'auth/operation-not-allowed': 'Hãy bật Email/Password trong Firebase Authentication.',
+      'permission-denied': 'Firestore Rules chưa cho phép tài khoản này truy cập.'
+    };
+    return codes[e.code] || e.message || 'Lỗi không xác định.';
+  }
+  window.FinanceCloudSync = {
+    scheduleSync: function () {
+      if (applyingRemote || !auth?.currentUser || !db) return;
+      dirty = true; clearTimeout(timer);
+      timer = setTimeout(() => writeCloud(auth.currentUser).catch(e => status('Đồng bộ thất bại: ' + e.message, true)), 900);
+    }
+  };
+})();

@@ -1,0 +1,26 @@
+[debug] [2026-10-11T15:07:29.614Z] ----------------------------------------------------------------------
+[debug] [2026-10-11T15:07:29.616Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\ADMIN\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init hosting
+[debug] [2026-10-11T15:07:29.617Z] CLI Version:   15.33.0
+[debug] [2026-10-11T15:07:29.617Z] Platform:      win32
+[debug] [2026-10-11T15:07:29.617Z] Node Version:  v24.21.0
+[debug] [2026-10-11T15:07:29.617Z] Detected Agent: unknown
+[debug] [2026-10-11T15:07:29.617Z] Time:          Sun Oct 11 2026 22:07:29 GMT+0700 (Indochina Time)
+[debug] [2026-10-11T15:07:29.617Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\ADMIN\Documents\GitHub\chi-tieu
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
