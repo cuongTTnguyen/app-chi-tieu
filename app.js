@@ -539,6 +539,68 @@ function selectCategory(catId) {
     }
 }
 
+// --- GOI 5: NHAP NHANH BANG CAU TIENG VIET (xu ly tai thiet bi, khong tu luu) ---
+function parseQuickTransaction() {
+    const box = document.getElementById('quick-entry-text');
+    const raw = (box?.value || '').trim();
+    if (!raw) { window.appToast?.('Hãy nhập câu mô tả giao dịch trước.', 'warning'); return; }
+
+    const lower = raw.toLocaleLowerCase('vi-VN');
+    let type = /\b(lương|luong|nhận|nhan|thu nhập|thu nhap|thưởng|thuong|được trả|duoc tra|bán được|ban duoc|hoàn tiền|hoan tien)\b/.test(lower) ? 'income' : 'expense';
+
+    // Tách ngày ra trước để không nhầm ngày/tháng thành số tiền.
+    let date = getLocalDateString();
+    let amountText = raw;
+    if (/\bhôm qua\b/.test(lower)) { const d = new Date(); d.setDate(d.getDate()-1); date = getLocalDateString(d); amountText = amountText.replace(/hôm qua/ig, ' '); }
+    else if (/\bngày mai\b/.test(lower)) { const d = new Date(); d.setDate(d.getDate()+1); date = getLocalDateString(d); amountText = amountText.replace(/ngày mai/ig, ' '); }
+    else if (/\bhôm nay\b/.test(lower)) { date = getLocalDateString(); amountText = amountText.replace(/hôm nay/ig, ' '); }
+    const dateMatch = amountText.match(/\b(?:ngày\s*)?(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/i);
+    if (dateMatch) {
+        let year = dateMatch[3] ? Number(dateMatch[3]) : new Date().getFullYear();
+        if (year < 100) year += 2000;
+        const d = new Date(year, Number(dateMatch[2])-1, Number(dateMatch[1]));
+        if (d.getFullYear() === year && d.getMonth() === Number(dateMatch[2])-1 && d.getDate() === Number(dateMatch[1])) date = getLocalDateString(d);
+        amountText = amountText.replace(dateMatch[0], ' ');
+    }
+
+    const moneyMatch = amountText.match(/(\d+(?:[.,]\d+)*)\s*(triệu|trieu|tri[eệ]u|tr|nghìn|nghin|ngàn|ngan|k|đồng|dong|đ)?\b/i);
+    if (!moneyMatch) { window.appToast?.('Chưa nhận ra số tiền. Ví dụ: “cà phê 35k” hoặc “lương 15 triệu”.', 'warning'); return; }
+    let numeric = moneyMatch[1];
+    let amount;
+    const suffix = (moneyMatch[2] || '').toLocaleLowerCase('vi-VN');
+    if (/[.,]/.test(numeric) && numeric.split(/[.,]/).pop().length === 3 && !suffix) amount = Number(numeric.replace(/[.,]/g, ''));
+    else amount = Number(numeric.replace(',', '.'));
+    if (['triệu','trieu','triệu','tr','triệu','trieu'].includes(suffix) || /tri[eệ]u/.test(suffix)) amount *= 1000000;
+    else if (['k','nghìn','nghin','ngàn','ngan'].includes(suffix)) amount *= 1000;
+    else if (suffix === 'đồng' || suffix === 'dong' || suffix === 'đ') amount = Number(numeric.replace(/[.,]/g, ''));
+    if (!Number.isFinite(amount) || amount <= 0) { window.appToast?.('Số tiền chưa hợp lệ. Vui lòng thử lại.', 'warning'); return; }
+    amount = Math.round(amount);
+
+    setEditType(type);
+    const amountInput = document.getElementById('input-amount');
+    if (amountInput) amountInput.value = new Intl.NumberFormat('vi-VN').format(amount);
+    const dateInput = document.getElementById('input-date'); if (dateInput) dateInput.value = date;
+    const noteInput = document.getElementById('input-note'); if (noteInput) noteInput.value = raw;
+
+    const hints = type === 'income' ? [
+        [['lương','luong','salary'], 'salary'], [['thưởng','thuong','bonus'], 'bonus'], [['đầu tư','dau tu','cổ phiếu','co phieu'], 'investment']
+    ] : [
+        [['ăn','pho','phở','cơm','com','cà phê','ca phe','cafe','bánh','banh','đồ ăn','do an'], 'food'],
+        [['xăng','xang','taxi','xe ôm','xe om','grab','xe bus','xe buýt','đi lại','di lai'], 'transport'],
+        [['mua','shopping','quần áo','quan ao','siêu thị','sieu thi'], 'shopping'],
+        [['phim','game','giải trí','giai tri','karaoke'], 'entertainment'],
+        [['điện','dien','nước','nuoc','internet','wifi','tiền nhà','tien nha','hóa đơn','hoa don'], 'bills'],
+        [['thuốc','thuoc','khám','kham','bệnh viện','benh vien'], 'health'],
+        [['sách','sach','học','hoc','khóa học','khoa hoc'], 'education']
+    ];
+    let categoryId = null;
+    for (const [words, id] of hints) { if (words.some(word => lower.includes(word))) { categoryId = id; break; } }
+    if (categoryId && categoriesData[type].some(c => c.id === categoryId)) selectCategory(categoryId);
+    else if (categoriesData[type][0]) selectCategory(categoriesData[type][0].id);
+
+    window.appToast?.(`Đã điền ${type === 'income' ? 'thu nhập' : 'chi tiêu'} ${formatCurrency(amount)} ngày ${date}. Hãy kiểm tra ví, danh mục và thông tin rồi bấm Hoàn tất lưu.`, 'success', {duration: 6500});
+}
+
 function handleFormSubmit(e) {
     e.preventDefault();
     const amtStr = document.getElementById('input-amount').value;

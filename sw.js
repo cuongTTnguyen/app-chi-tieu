@@ -1,5 +1,5 @@
 /* Finance Buddy PWA service worker. Bump CACHE_NAME when publishing a new package. */
-const CACHE_NAME = 'finance-buddy-g4-v1';
+const CACHE_NAME = 'finance-buddy-g5-ui-v2';
 const APP_SHELL = [
   './', './index.html', './tai-khoan.html', './edit.html', './user.html',
   './app.js', './layout.js', './style.css', './firebase-config.js',
