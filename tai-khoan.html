@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài Khoản - Quản Lý Chi Tiêu</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8b5cf6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Quicksand', 'sans-serif'] }, colors: { brand: { bgDark: '#0f172a', cardDark: '#1e293b', bgLight: '#f8fafc', cardLight: '#ffffff', primary: '#8b5cf6', primaryHover: '#7c3aed', expense: '#f43f5e', income: '#10b981' } }, boxShadow: { 'bubbly': '0 10px 25px -5px rgba(0, 0, 0, 0.1)', 'bubbly-dark': '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)' } } } }</script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-brand-bgLight text-slate-800 dark:bg-brand-bgDark dark:text-slate-200 h-[100dvh] flex overflow-hidden selection:bg-brand-primary selection:text-white">
+
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50 dark:bg-slate-900/50">
+        <!-- HEADER MOBILE -->
+        <header class="md:hidden flex items-center justify-center p-4 bg-brand-cardLight dark:bg-brand-cardDark shadow-sm z-20 rounded-b-3xl relative">
+            <h1 class="font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-pink-500">Finance Buddy</h1>
+            <a href="user.html" class="absolute right-4 w-9 h-9 rounded-full bg-brand-primary cursor-pointer border-2 border-white dark:border-slate-700 shadow">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4" alt="avatar" class="w-full h-full rounded-full">
+            </a>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 relative scroll-smooth" id="main-scroll-area">
+            <section class="max-w-4xl mx-auto animate-view">
+                
+                <!-- THANH CHUYỂN ĐỔI NGƯỜI DÙNG (WORKSPACE) -->
+                <div class="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl mb-8 relative shadow-inner max-w-sm mx-auto">
+                    <div id="workspace-indicator" class="absolute inset-y-1.5 left-1.5 w-[calc(33.333%-4px)] bg-white dark:bg-slate-600 rounded-xl transition-all duration-300 shadow-md"></div>
+                    <button onclick="setWorkspace('user1')" id="tab-ws-user1" class="flex-1 py-2 text-sm font-bold z-10 transition-colors text-brand-primary">Người A</button>
+                    <button onclick="setWorkspace('user2')" id="tab-ws-user2" class="flex-1 py-2 text-sm font-bold z-10 transition-colors text-slate-500 dark:text-slate-400">Người B</button>
+                    <button onclick="setWorkspace('shared')" id="tab-ws-shared" class="flex-1 py-2 text-sm font-bold z-10 transition-colors text-slate-500 dark:text-slate-400">Quỹ Chung</button>
+                </div>
+
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="font-extrabold text-3xl text-slate-800 dark:text-white leading-tight">Quản Lý Tài Khoản</h2>
+                        <p class="text-slate-500 dark:text-slate-400 font-medium">Theo dõi tổng dòng tiền của bạn</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-sm"><i class="fas fa-piggy-bank"></i></div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-600 rounded-[2rem] p-8 text-white shadow-bubbly dark:shadow-bubbly-dark relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                        <i class="fas fa-wallet absolute -bottom-6 -right-4 text-9xl opacity-20 group-hover:scale-110 transition-transform duration-500"></i>
+                        <div class="relative z-10">
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm shadow-inner"><i class="fas fa-coins text-xl"></i></div>
+                            <p class="font-semibold opacity-90 mb-1 uppercase tracking-wider text-sm">TỔNG TÀI SẢN HIỆN CÓ</p>
+                            <h2 class="text-4xl md:text-5xl font-extrabold drop-shadow-md" id="acc-total-assets">0đ</h2>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-rose-500 via-red-500 to-orange-500 rounded-[2rem] p-8 text-white shadow-bubbly dark:shadow-bubbly-dark relative overflow-hidden group hover:-translate-y-1 transition-transform">
+                        <i class="fas fa-fire absolute -bottom-6 -right-4 text-9xl opacity-20 group-hover:scale-110 transition-transform duration-500"></i>
+                        <div class="relative z-10">
+                            <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-4 backdrop-blur-sm shadow-inner"><i class="fas fa-shopping-cart text-xl"></i></div>
+                            <p class="font-semibold opacity-90 mb-1 uppercase tracking-wider text-sm">ĐÃ CHI TIÊU (THÁNG NÀY)</p>
+                            <h2 class="text-4xl md:text-5xl font-extrabold drop-shadow-md" id="acc-total-spent">0đ</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-brand-cardLight dark:bg-brand-cardDark rounded-[2rem] shadow-bubbly dark:shadow-bubbly-dark border border-slate-100 dark:border-slate-800 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/30 flex justify-between items-center">
+                        <h3 class="font-extrabold text-xl text-slate-700 dark:text-slate-200 flex items-center"><i class="fas fa-history mr-2 text-brand-primary"></i> Lịch Sử</h3>
+                        <button id="btn-view-all-history" onclick="toggleHistoryView()" class="text-sm font-bold text-brand-primary hover:underline transition-all flex items-center">Xem tất cả <i class="fas fa-chevron-down text-xs ml-1"></i></button>
+                    </div>
+                    
+                    <!-- Thanh công cụ Tìm kiếm & Lọc -->
+                    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800/50 space-y-3">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400"></i>
+                            <input type="text" id="history-search" placeholder="Tìm tên, ghi chú, tag..." onkeyup="filterHistory()" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl py-2.5 pl-11 pr-4 text-sm font-bold focus:outline-none focus:border-brand-primary text-slate-700 dark:text-slate-200 transition-colors shadow-inner">
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="setHistoryFilter('all')" id="btn-filter-all" class="flex-1 py-2 rounded-xl text-xs font-bold bg-brand-primary text-white transition-colors shadow-md">Tất cả</button>
+                            <button onclick="setHistoryFilter('income')" id="btn-filter-income" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:opacity-80 transition-colors">Thu Nhập</button>
+                            <button onclick="setHistoryFilter('expense')" id="btn-filter-expense" class="flex-1 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:opacity-80 transition-colors">Chi Phí</button>
+                        </div>
+                    </div>
+
+                    <div id="history-list" class="divide-y divide-slate-100 dark:divide-slate-700/50 max-h-[500px] overflow-y-auto custom-scrollbar transition-all duration-300">
+                        <div class="py-12 flex flex-col items-center text-slate-500 hidden" id="history-empty"><i class="fas fa-receipt text-4xl mb-3 opacity-30"></i><p class="font-medium">Chưa có bản ghi giao dịch nào.</p></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="layout.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

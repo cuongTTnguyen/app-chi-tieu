@@ -1,0 +1,82 @@
+/* Tùy chỉnh thanh cuộn cho gọn gàng */
+::-webkit-scrollbar { 
+    width: 6px; 
+}
+::-webkit-scrollbar-track { 
+    background: transparent; 
+}
+::-webkit-scrollbar-thumb { 
+    background-color: #cbd5e1; 
+    border-radius: 20px; 
+}
+.dark ::-webkit-scrollbar-thumb { 
+    background-color: #475569; 
+}
+
+/* Hiệu ứng nảy cho các nút (Hoạt hình) */
+.btn-bouncy { 
+    transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); 
+}
+.btn-bouncy:active { 
+    transform: scale(0.92); 
+}
+
+/* Hiệu ứng kính cho overlay */
+.glass-panel {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Tùy chỉnh danh mục được chọn trong trang Edit */
+.category-item { 
+    border: 3px solid transparent; 
+    transition: all 0.2s ease; 
+}
+.category-item.selected {
+    border-color: #8b5cf6;
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
+    background-color: rgba(139, 92, 246, 0.05);
+}
+.dark .category-item.selected { 
+    background-color: rgba(139, 92, 246, 0.15); 
+}
+
+/* Ẩn hiện thanh cuộn ngang tùy chỉnh */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(156, 163, 175, 0.5);
+    border-radius: 4px;
+}
+
+/* Animation xuất hiện mượt mà cho toàn trang */
+@keyframes fadeInScale {
+    0% { opacity: 0; transform: scale(0.98); }
+    100% { opacity: 1; transform: scale(1); }
+}
+.animate-view { 
+    animation: fadeInScale 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards; 
+}
+
+/* Hỗ trợ vùng an toàn trên Mobile (Tai thỏ, Dynamic Island) */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+}
+
+.icon-option { border: 2px solid transparent; transition: all 0.2s ease; }
+.icon-option.selected { 
+    border-color: #8b5cf6; 
+    transform: scale(1.1); 
+    background-color: rgba(139, 92, 246, 0.1); 
+}
+.dark .icon-option.selected { background-color: rgba(139, 92, 246, 0.2); }
+
+.color-option { border: 2px solid transparent; transition: all 0.2s ease; outline-offset: 2px; }
+.color-option.selected { 
+    outline: 2px solid #8b5cf6; 
+    transform: scale(1.1); 
+}
