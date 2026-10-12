@@ -49,13 +49,38 @@
     });
     return result;
   }
-  function fingerprint(data) { return JSON.stringify(data || {}); }
+  // So sánh dữ liệu theo thứ tự khóa ổn định. Firestore có thể trả về các khóa
+  // object theo thứ tự khác localStorage; JSON.stringify trực tiếp sẽ gây nhận
+  // nhầm dữ liệu là khác nhau và location.reload() lặp vô hạn.
+  function fingerprint(data) {
+    function normalize(value) {
+      if (Array.isArray(value)) return value.map(normalize);
+      if (value && typeof value === 'object') {
+        const result = {};
+        Object.keys(value).sort().forEach(key => { result[key] = normalize(value[key]); });
+        return result;
+      }
+      return value;
+    }
+    return JSON.stringify(normalize(data || {}));
+  }
   function applyRemote(data) {
     applyingRemote = true;
-    Object.entries(DATA_KEYS).forEach(([name, key]) => {
-      if (Object.prototype.hasOwnProperty.call(data || {}, name)) localStorage.setItem(key, JSON.stringify(data[name]));
-    });
-    lastFingerprint = fingerprint(collectLocal()); dirty = false; applyingRemote = false;
+    try {
+      Object.entries(DATA_KEYS).forEach(([name, key]) => {
+        if (Object.prototype.hasOwnProperty.call(data || {}, name)) {
+          localStorage.setItem(key, JSON.stringify(data[name]));
+        } else {
+          // Khi chọn bản đám mây, xóa khóa không có trong bản cloud để hai bên
+          // thực sự giống nhau, tránh tải lại trang liên tục do dữ liệu cũ sót lại.
+          localStorage.removeItem(key);
+        }
+      });
+      lastFingerprint = fingerprint(collectLocal());
+      dirty = false;
+    } finally {
+      applyingRemote = false;
+    }
   }
   function docRef() {
     return db.collection('financeBuddyHouseholds').doc(window.FINANCE_FIREBASE_HOUSEHOLD_ID || 'finance-buddy-household-main');
@@ -67,20 +92,43 @@
     lastFingerprint = fingerprint(data); dirty = false;
     status('Đã đồng bộ dữ liệu lên Firebase lúc ' + new Date().toLocaleTimeString('vi-VN'));
   }
+  function choiceKey(user) {
+    return 'finance_buddy_sync_choice:' + (window.FINANCE_FIREBASE_HOUSEHOLD_ID || 'finance-buddy-household-main') + ':' + user.uid;
+  }
+
   async function attachCloud(user) {
     if (unsubscribe) unsubscribe();
     const ref = docRef();
     const snap = await ref.get();
     if (!snap.exists) {
       const uploadLocal = await (window.appConfirm ? window.appConfirm('Chưa có dữ liệu trên Firebase. Bạn muốn tải dữ liệu đang có trên thiết bị này lên đám mây?', {title:'Thiết lập đồng bộ', confirmText:'Tải lên Firebase'}) : Promise.resolve(false));
-      if (uploadLocal) await writeCloud(user);
-      else status('Chưa có dữ liệu đám mây. Dữ liệu trên thiết bị được giữ nguyên.');
+      if (uploadLocal) {
+        localStorage.setItem(choiceKey(user), 'local');
+        await writeCloud(user);
+      } else status('Chưa có dữ liệu đám mây. Dữ liệu trên thiết bị được giữ nguyên.');
     } else {
       const remote = snap.data();
       if (remote.ownerUid !== user.uid) throw new Error('Tài khoản này không có quyền với bộ dữ liệu đồng bộ đã chọn.');
-      const useCloud = await (window.appConfirm ? window.appConfirm('Đã tìm thấy dữ liệu Firebase. Nếu chọn dùng dữ liệu đám mây, dữ liệu cục bộ trên thiết bị này sẽ được thay thế. Nếu không, dữ liệu cục bộ sẽ được tải lên Firebase.', {title:'Chọn dữ liệu đồng bộ', confirmText:'Dùng dữ liệu đám mây', confirmClass:'bg-brand-primary hover:bg-purple-700'}) : Promise.resolve(false));
-      if (useCloud) { applyRemote(remote.data || {}); location.reload(); return; }
-      await writeCloud(user);
+      const key = choiceKey(user);
+      let choice = localStorage.getItem(key);
+      if (choice !== 'cloud' && choice !== 'local') {
+        const useCloud = await (window.appConfirm ? window.appConfirm('Đã tìm thấy dữ liệu Firebase. Nếu chọn dùng dữ liệu đám mây, dữ liệu cục bộ trên thiết bị này sẽ được thay thế. Nếu không, dữ liệu cục bộ sẽ được tải lên Firebase.', {title:'Chọn dữ liệu đồng bộ', confirmText:'Dùng dữ liệu đám mây', confirmClass:'bg-brand-primary hover:bg-purple-700'}) : Promise.resolve(false));
+        choice = useCloud ? 'cloud' : 'local';
+        localStorage.setItem(key, choice);
+      }
+      if (choice === 'cloud') {
+        const remoteFingerprint = fingerprint(remote.data || {});
+        if (fingerprint(collectLocal()) !== remoteFingerprint) {
+          applyRemote(remote.data || {});
+          location.reload();
+          return;
+        }
+        lastFingerprint = remoteFingerprint;
+      } else {
+        const localFingerprint = fingerprint(collectLocal());
+        if (localFingerprint !== fingerprint(remote.data || {})) await writeCloud(user);
+        else lastFingerprint = localFingerprint;
+      }
     }
     unsubscribe = ref.onSnapshot(async snapshot => {
       if (!snapshot.exists || !auth.currentUser) return;
