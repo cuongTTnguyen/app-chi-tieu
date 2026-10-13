@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
+<head><script>(function(){try{var t=localStorage.getItem('finance_buddy_theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tài Khoản - Quản Lý Chi Tiêu</title>
@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Quicksand', 'sans-serif'] }, colors: { brand: { bgDark: '#0f172a', cardDark: '#1e293b', bgLight: '#f8fafc', cardLight: '#ffffff', primary: '#8b5cf6', primaryHover: '#7c3aed', expense: '#f43f5e', income: '#10b981' } }, boxShadow: { 'bubbly': '0 10px 25px -5px rgba(0, 0, 0, 0.1)', 'bubbly-dark': '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)' } } } }</script>
     <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="enhancements.css">
 </head>
 
 <body class="bg-brand-bgLight text-slate-800 dark:bg-brand-bgDark dark:text-slate-200 h-[100dvh] flex overflow-hidden selection:bg-brand-primary selection:text-white">
@@ -103,6 +104,7 @@
     <script src="firebase-sync.js"></script>
     <script src="layout.js"></script>
     <script src="app.js"></script>
+    <script src="enhancements.js"></script>
     <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA service worker:', err)));</script>
 </body>
 </html>

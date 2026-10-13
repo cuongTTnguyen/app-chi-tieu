@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
+<head><script>(function(){try{var t=localStorage.getItem('finance_buddy_theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hồ Sơ Cá Nhân - Quản Lý Chi Tiêu</title>
@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Quicksand', 'sans-serif'] }, colors: { brand: { bgDark: '#0f172a', cardDark: '#1e293b', bgLight: '#f8fafc', cardLight: '#ffffff', primary: '#8b5cf6', primaryHover: '#7c3aed', expense: '#f43f5e', income: '#10b981' } }, boxShadow: { 'bubbly': '0 10px 25px -5px rgba(0, 0, 0, 0.1)', 'bubbly-dark': '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)' } } } }</script>
     <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="enhancements.css">
 </head>
 
 <body class="bg-brand-bgLight text-slate-800 dark:bg-brand-bgDark dark:text-slate-200 h-[100dvh] flex overflow-hidden selection:bg-brand-primary selection:text-white">
@@ -43,9 +44,7 @@
                     <button onclick="setWorkspace('user1')" id="tab-ws-user1" class="flex-1 py-2 text-sm font-bold z-10 transition-colors text-brand-primary">Người A</button>
                     <button onclick="setWorkspace('user2')" id="tab-ws-user2" class="flex-1 py-2 text-sm font-bold z-10 transition-colors text-slate-500 dark:text-slate-400">Người B</button>
                 </div>
-                <button type="button" data-shared-workspace-button onclick="setWorkspace('shared')" class="block mx-auto mb-8 px-5 py-2 rounded-xl border border-brand-primary/30 font-bold text-brand-primary hover:bg-brand-primary/10 transition-colors"><i class="fas fa-people-arrows mr-2"></i><span id="shared-workspace-label">Quỹ Chung</span> · Xem riêng</button>
-
-                <div class="bg-brand-cardLight dark:bg-brand-cardDark rounded-[2rem] p-8 shadow-bubbly dark:shadow-bubbly-dark flex flex-col items-center relative overflow-hidden border border-slate-100 dark:border-slate-800">
+<div class="bg-brand-cardLight dark:bg-brand-cardDark rounded-[2rem] p-8 shadow-bubbly dark:shadow-bubbly-dark flex flex-col items-center relative overflow-hidden border border-slate-100 dark:border-slate-800">
                     <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-cyan-400 via-brand-primary to-pink-500 opacity-20"></div>
 
                     <div class="w-32 h-32 rounded-full bg-gradient-to-tr from-brand-primary to-pink-500 flex items-center justify-center mb-4 relative shadow-[0_10px_25px_rgba(0,0,0,0.2)] mt-8 z-10 border-4 border-white dark:border-brand-cardDark group">
@@ -64,14 +63,7 @@
                                 <input id="profile-display-name" type="text" value="Người A" class="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-primary font-bold text-lg text-slate-800 dark:text-slate-100 transition-colors shadow-inner layout-user-name">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-extrabold text-slate-500 mb-2 uppercase tracking-wide">Email liên kết</label>
-                            <div class="relative group">
-                                <i class="fas fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-brand-primary transition-colors"></i>
-                                <input type="email" value="user@financebuddy.com" class="w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:border-brand-primary font-bold text-lg text-slate-800 dark:text-slate-100 transition-colors shadow-inner">
-                            </div>
-                        </div>
-                        <button type="button" onclick="saveCurrentProfile();" class="w-full bg-gradient-to-r from-slate-800 to-slate-700 dark:from-white dark:to-slate-200 text-white dark:text-slate-900 font-extrabold text-lg py-4 rounded-xl mt-6 btn-bouncy shadow-lg flex justify-center items-center hover:opacity-90 transition-opacity">
+<button type="button" onclick="saveCurrentProfile();" class="w-full bg-gradient-to-r from-slate-800 to-slate-700 dark:from-white dark:to-slate-200 text-white dark:text-slate-900 font-extrabold text-lg py-4 rounded-xl mt-6 btn-bouncy shadow-lg flex justify-center items-center hover:opacity-90 transition-opacity">
                             <i class="fas fa-save mr-2 text-xl"></i> LƯU THAY ĐỔI
                         </button>
                     </form>
@@ -83,7 +75,7 @@
     <div id="avatar-picker-modal" class="fixed inset-0 z-[120] hidden items-center justify-center p-4 bg-slate-950/60" onclick="if(event.target===this){this.classList.add('hidden');this.classList.remove('flex')}">
         <div class="w-full max-w-lg max-h-[85dvh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-800 p-5 shadow-2xl">
             <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-extrabold">Chọn ảnh đại diện</h3><button type="button" onclick="document.getElementById('avatar-picker-modal').classList.add('hidden');document.getElementById('avatar-picker-modal').classList.remove('flex')" class="p-2 rounded-lg"><i class="fas fa-times"></i></button></div>
-            <p class="text-sm text-slate-500 mb-4">Chọn một trong 20 ảnh đại diện. Ảnh tải từ DiceBear khi có Internet.</p>
+            <p class="text-sm text-slate-500 mb-4">Chọn một trong 30 ảnh đại diện. Ảnh tải từ DiceBear khi có Internet.</p>
             <div id="avatar-picker-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-2"></div>
         </div>
     </div>
@@ -95,6 +87,7 @@
     <script src="firebase-sync.js"></script>
     <script src="layout.js"></script>
     <script src="app.js"></script>
+    <script src="enhancements.js"></script>
     <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA service worker:', err)));</script>
 </body>
 </html>

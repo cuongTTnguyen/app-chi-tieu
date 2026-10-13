@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
+<head><script>(function(){try{var t=localStorage.getItem('finance_buddy_theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nhập Dữ Liệu - Quản Lý Chi Tiêu</title>
@@ -16,6 +16,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Quicksand', 'sans-serif'] }, colors: { brand: { bgDark: '#0f172a', cardDark: '#1e293b', bgLight: '#f8fafc', cardLight: '#ffffff', primary: '#8b5cf6', primaryHover: '#7c3aed', expense: '#f43f5e', income: '#10b981' } }, boxShadow: { 'bubbly': '0 10px 25px -5px rgba(0, 0, 0, 0.1)', 'bubbly-dark': '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)' } } } }</script>
     <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="enhancements.css">
 </head>
 
 <body class="bg-brand-bgLight text-slate-800 dark:bg-brand-bgDark dark:text-slate-200 h-[100dvh] flex overflow-hidden selection:bg-brand-primary selection:text-white">
@@ -26,7 +27,7 @@
             <a href="index.html" class="absolute left-4 text-slate-600 dark:text-slate-300 text-xl btn-bouncy p-2">
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <h1 class="font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-pink-500">Sổ chi tiêu</h1>
+            <h1 class="font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-pink-500">Finance Buddy</h1>
         </header>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth" id="main-scroll-area">
@@ -35,6 +36,20 @@
                 <div class="hidden md:flex items-center mb-8 bg-brand-cardLight dark:bg-brand-cardDark p-4 rounded-2xl shadow-sm">
                     <a href="index.html" class="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 shadow flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-brand-primary hover:bg-slate-200 btn-bouncy mr-4 transition-colors"><i class="fas fa-arrow-left text-xl"></i></a>
                     <div><h2 class="font-extrabold text-2xl text-slate-800 dark:text-white leading-tight">Nhập Giao Dịch Mới</h2><p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Ghi chép chi tiêu để quản lý tốt hơn</p></div>
+                </div>
+
+                <!-- GOI 5: NHAP NHANH BANG NGON NGU TU NHIEN -->
+                <div class="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-slate-800 dark:to-indigo-950/40 rounded-2xl p-3 sm:p-4 mb-4 border border-violet-100 dark:border-indigo-900 shadow-sm">
+                    <div class="flex items-center gap-2 mb-2">
+                        <div class="w-8 h-8 rounded-xl bg-brand-primary text-white flex items-center justify-center shrink-0"><i class="fas fa-wand-magic-sparkles"></i></div>
+                        <h3 class="font-extrabold text-base">Nhập nhanh</h3>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">VD: Ăn trưa 45k hôm nay</span>
+                    </div>
+                    <textarea id="quick-entry-text" rows="2" autocomplete="off" placeholder="VD: Đổ xăng 100k hôm qua..." class="w-full rounded-xl border-2 border-violet-100 dark:border-slate-600 bg-white dark:bg-slate-900 p-3 text-slate-800 dark:text-slate-100 font-semibold focus:outline-none focus:border-brand-primary"></textarea>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mt-2">
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Kiểm tra trước khi lưu.</p>
+                        <button type="button" onclick="parseQuickTransaction()" class="rounded-xl bg-brand-primary hover:bg-violet-700 text-white font-extrabold px-4 py-2.5 transition-colors"><i class="fas fa-wand-magic-sparkles mr-1"></i> Điền nhanh</button>
+                    </div>
                 </div>
 
                 <div class="bg-brand-cardLight dark:bg-brand-cardDark rounded-[2rem] p-6 md:p-10 shadow-bubbly dark:shadow-bubbly-dark border border-slate-100 dark:border-slate-800 relative overflow-hidden">
@@ -96,7 +111,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full bg-gradient-to-r from-brand-primary to-purple-600 hover:from-purple-600 hover:to-brand-primary text-white font-extrabold text-xl py-5 rounded-2xl shadow-[0_10px_20px_rgba(139,92,246,0.3)] transform hover:-translate-y-1 transition-all duration-300 btn-bouncy flex items-center justify-center pb-safe">
+                        <button id="transaction-submit-button" type="submit" class="w-full -mt-2 relative z-10 bg-gradient-to-r from-brand-primary to-purple-600 hover:from-purple-600 hover:to-brand-primary text-white font-extrabold text-xl py-5 rounded-2xl shadow-[0_10px_20px_rgba(139,92,246,0.3)] transform hover:-translate-y-1 transition-all duration-300 btn-bouncy flex items-center justify-center pb-safe">
                             <i class="fas fa-check-circle mr-2 text-2xl"></i> HOÀN TẤT LƯU
                         </button>
                     </form>
@@ -154,7 +169,68 @@
             </div>
         </div>
     </div>
+    <!-- Nút lưu nổi: hiện khi nút lưu chính chưa nằm trong vùng nhìn thấy trên màn hình. -->
+    <button id="floating-transaction-save" type="button" class="floating-save-button" aria-label="Hoàn tất lưu giao dịch">
+        <i class="fas fa-check mr-2"></i><span>Lưu giao dịch</span>
+    </button>
+    <script>
+    (() => {
+      const floating = document.getElementById('floating-transaction-save');
+      const mainButton = document.getElementById('transaction-submit-button');
+      const form = mainButton?.closest('form');
+      if (!floating || !mainButton || !form) return;
+      let mainVisible = false;
+      const setMainVisible = (isVisible) => {
+        if (isVisible === mainVisible) return;
+        mainVisible = isVisible;
+        if (isVisible) {
+          const from = floating.getBoundingClientRect();
+          const to = mainButton.getBoundingClientRect();
+          floating.style.setProperty('--fly-x', `${to.left + to.width / 2 - (from.left + from.width / 2)}px`);
+          floating.style.setProperty('--fly-y', `${to.top + to.height / 2 - (from.top + from.height / 2)}px`);
+          floating.classList.add('floating-save-fly-away');
+          window.setTimeout(() => {
+            floating.classList.remove('floating-save-fly-away');
+            floating.classList.add('floating-save-hidden');
+          }, 480);
+        } else {
+          floating.classList.remove('floating-save-hidden', 'floating-save-fly-away');
+          floating.style.removeProperty('--fly-x');
+          floating.style.removeProperty('--fly-y');
+        }
+      };
+      if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(entries => {
+          const entry = entries[0];
+          setMainVisible(entry.isIntersecting && entry.intersectionRatio > 0.25);
+        }, { threshold: [0, 0.25, 0.5, 1] });
+        observer.observe(mainButton);
+      } else {
+        const check = () => {
+          const r = mainButton.getBoundingClientRect();
+          setMainVisible(r.bottom > 0 && r.top < window.innerHeight);
+        };
+        window.addEventListener('scroll', check, { passive: true });
+        window.addEventListener('resize', check);
+        check();
+      }
+      floating.addEventListener('click', () => {
+        if (form.requestSubmit) form.requestSubmit(mainButton);
+        else mainButton.click();
+      });
+      form.addEventListener('submit', () => floating.classList.add('floating-save-hidden'));
+    })();
+    </script>
+
+    <!-- Firebase đồng bộ đám mây (tùy chọn; cần cấu hình firebase-config.js) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="firebase-sync.js"></script>
     <script src="layout.js"></script>
     <script src="app.js"></script>
+    <script src="enhancements.js"></script>
+    <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA service worker:', err)));</script>
 </body>
-</html> 
+</html>

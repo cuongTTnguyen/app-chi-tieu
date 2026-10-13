@@ -6,6 +6,7 @@
     const isIndex = currentPath === 'index.html' || currentPath === '';
     const isTaiKhoan = currentPath === 'tai-khoan.html';
     const isUser = currentPath === 'user.html';
+    const isAdmin = currentPath === 'admin.html';
 
     // 2. Khởi tạo mã HTML của Sidebar (Desktop)
     const sidebarHTML = `

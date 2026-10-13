@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
+<head><script>(function(){try{var t=localStorage.getItem('finance_buddy_theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d)}catch(e){}})();</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trang Chủ - Quản Lý Chi Tiêu</title>
@@ -17,6 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Quicksand', 'sans-serif'] }, colors: { brand: { bgDark: '#0f172a', cardDark: '#1e293b', bgLight: '#f8fafc', cardLight: '#ffffff', primary: '#8b5cf6', primaryHover: '#7c3aed', expense: '#f43f5e', income: '#10b981' } }, boxShadow: { 'bubbly': '0 10px 25px -5px rgba(0, 0, 0, 0.1)', 'bubbly-dark': '0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3)' } } } }</script>
     <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="enhancements.css">
 </head>
 
 <body class="bg-brand-bgLight text-slate-800 dark:bg-brand-bgDark dark:text-slate-200 h-[100dvh] flex overflow-hidden selection:bg-brand-primary selection:text-white">
@@ -24,7 +25,7 @@
     <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-50 dark:bg-slate-900/50">
         <!-- HEADER MOBILE -->
         <header class="md:hidden flex items-center justify-center p-4 bg-brand-cardLight dark:bg-brand-cardDark shadow-sm z-20 rounded-b-3xl relative">
-            <h1 class="font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-pink-500">Sổ chi tiêu</h1>
+            <h1 class="font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-pink-500">Finance Buddy</h1>
             <a href="user.html" class="absolute right-4 w-9 h-9 rounded-full bg-brand-primary cursor-pointer border-2 border-white dark:border-slate-700 shadow">
                 <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4" alt="avatar" class="w-full h-full rounded-full layout-user-avatar">
             </a>
@@ -106,11 +107,11 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
     <script src="firebase-config.js"></script>
     <script src="firebase-sync.js"></script>
     <script src="layout.js"></script>
     <script src="app.js"></script>
+    <script src="enhancements.js"></script>
     <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('PWA service worker:', err)));</script>
 </body>
 </html>

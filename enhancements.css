@@ -1,0 +1,14 @@
+/* Stable dark/light canvas prevents the browser's default white frame during full-page navigation. */
+html,body{min-height:100%;background-color:#f8fafc;}
+html.dark,html.dark body{background-color:#0f172a;}
+html{color-scheme:light;}
+html.dark{color-scheme:dark;}
+body{opacity:1;animation:fb-page-enter .22s ease-out both;}
+@keyframes fb-page-enter{from{opacity:.82}to{opacity:1}}
+/* Keep the content transition subtle; do not animate the page background or layout dimensions. */
+.animate-view{animation:fb-content-enter .24s cubic-bezier(.2,.7,.2,1) both;}
+@keyframes fb-content-enter{from{opacity:.92;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+#feature-menu-content{will-change:transform;}
+#history-list{overflow-anchor:none;}
+[data-shared-workspace-button]{position:relative;display:flex!important;align-items:center;justify-content:center;gap:.4rem;max-width:max-content;margin-left:auto;margin-right:auto;white-space:nowrap;}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
