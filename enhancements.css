@@ -12,3 +12,38 @@ body{opacity:1;animation:fb-page-enter .22s ease-out both;}
 #history-list{overflow-anchor:none;}
 [data-shared-workspace-button]{position:relative;display:flex!important;align-items:center;justify-content:center;gap:.4rem;max-width:max-content;margin-left:auto;margin-right:auto;white-space:nowrap;}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}}
+
+
+/* Sổ chi tiêu CL — nút lưu nổi dạng bong bóng máy bay giấy */
+.floating-save-button{
+  position:fixed;right:max(18px,env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom));z-index:90;
+  width:64px;height:64px;border:1px solid rgba(255,255,255,.55);border-radius:999px;
+  display:flex;align-items:center;justify-content:center;gap:0;
+  color:#fff;background:linear-gradient(145deg,#a78bfa 0%,#8b5cf6 48%,#6d28d9 100%);
+  box-shadow:0 12px 28px rgba(124,58,237,.38),inset 0 1px 0 rgba(255,255,255,.35);
+  font-size:23px;cursor:pointer;transition:transform .22s ease,opacity .22s ease,box-shadow .22s ease;
+  animation:cl-paper-bob 3s ease-in-out infinite; -webkit-tap-highlight-color:transparent;
+}
+.floating-save-button i{transform:translate(-1px,1px) rotate(-8deg);filter:drop-shadow(0 2px 2px rgba(45,20,90,.2));}
+.floating-save-label{position:absolute;right:72px;white-space:nowrap;background:#312e81;color:white;font-size:12px;font-weight:800;letter-spacing:.2px;padding:7px 10px;border-radius:10px;box-shadow:0 5px 16px rgba(15,23,42,.18);opacity:0;transform:translateX(5px);pointer-events:none;transition:opacity .18s ease,transform .18s ease}
+.floating-save-button:hover .floating-save-label,.floating-save-button:focus-visible .floating-save-label{opacity:1;transform:translateX(0)}
+.floating-save-button:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 16px 32px rgba(124,58,237,.46),inset 0 1px 0 rgba(255,255,255,.4)}
+.floating-save-button:active{transform:scale(.94)}
+.floating-save-button:focus-visible{outline:3px solid #c4b5fd;outline-offset:4px}
+.floating-save-button.floating-save-hidden{opacity:0;pointer-events:none;transform:scale(.65);visibility:hidden}
+.floating-save-button.floating-save-fly-away{animation:cl-paper-fly .46s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes cl-paper-bob{0%,100%{margin-bottom:0}50%{margin-bottom:5px}}
+@keyframes cl-paper-fly{to{transform:translate(var(--fly-x,0),var(--fly-y,0)) scale(.35) rotate(22deg);opacity:0}}
+/* Cải thiện độ thoáng của vùng nhập liệu, nhất là trên màn hình điện thoại. */
+#edit-form label{line-height:1.35}
+#edit-form input:focus,#edit-form select:focus,#edit-form textarea:focus{box-shadow:0 0 0 4px rgba(139,92,246,.11)}
+#category-grid>button{min-height:76px;border-radius:16px;transition:transform .18s ease,box-shadow .18s ease}
+#category-grid>button:active{transform:scale(.96)}
+@media(max-width:640px){
+  #main-scroll-area{padding:12px!important;padding-bottom:100px!important}
+  #edit-form input#input-amount{font-size:2.15rem;padding-top:1rem;padding-bottom:1rem}
+  #edit-form .mb-8{margin-bottom:1.25rem}
+  #edit-form>div:first-child{margin-bottom:1.25rem}
+  .floating-save-button{width:60px;height:60px;right:max(15px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));font-size:22px}
+}
+@media(prefers-reduced-motion:reduce){.floating-save-button{animation:none}}

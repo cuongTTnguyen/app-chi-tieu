@@ -1,5 +1,5 @@
 /* Finance Buddy SW: network-first for app files to prevent stale UI and white flash from old cache. */
-const CACHE_NAME = 'finance-buddy-g6-stable-v1';
+const CACHE_NAME = 'finance-buddy-g6-so-chi-tieu-cl-v2';
 const APP_SHELL = ['./','./index.html','./tai-khoan.html','./edit.html','./user.html','./admin.html','./app.js','./layout.js','./enhancements.js','./enhancements.css','./style.css','./firebase-config.js','./firebase-sync.js'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(APP_SHELL).catch(()=>{})).then(()=>self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('finance-buddy-')&&k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
