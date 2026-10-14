@@ -109,10 +109,6 @@
                     <div class="relative w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-bell text-amber-600 dark:text-amber-300 text-2xl"></i><span id="reminder-due-badge" class="hidden absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold items-center justify-center">0</span></div>
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Nhắc định kỳ</span>
                 </button>
-                <a href="no.html" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
-                    <div class="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-handshake text-emerald-600 dark:text-emerald-300 text-2xl"></i></div>
-                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Ghi nợ</span>
-                </a>
                 <button type="button" onclick="openCloudSyncModal()" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
                     <div class="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-cloud text-violet-600 dark:text-violet-300 text-2xl"></i></div>
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Đồng bộ Firebase</span>

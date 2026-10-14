@@ -5,8 +5,7 @@
     categories: 'finance_buddy_categories',
     profiles: 'finance_buddy_profiles',
     funds: 'finance_buddy_funds',
-    reminders: 'finance_buddy_recurring_reminders',
-    debts: 'finance_buddy_debts'
+    reminders: 'finance_buddy_recurring_reminders'
   };
   let auth = null, db = null, unsubscribe = null, initialized = false;
   let dirty = false, applyingRemote = false, lastFingerprint = '', timer = null;
@@ -91,12 +90,9 @@
   async function writeCloud(user) {
     if (!db || !user || applyingRemote) return;
     const data = collectLocal();
-    const sentFingerprint = fingerprint(data);
     await docRef().set({ ownerUid: user.uid, data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    lastFingerprint = sentFingerprint;
-    // Không xóa cờ pending nếu người dùng vừa sửa thêm trong lúc request đang chạy.
-    if (fingerprint(collectLocal()) === sentFingerprint) { dirty = false; localStorage.removeItem(PENDING_KEY); }
-    else { dirty = true; localStorage.setItem(PENDING_KEY, '1'); clearTimeout(timer); timer = setTimeout(() => writeCloud(auth?.currentUser).catch(e => status('Đồng bộ thất bại: ' + e.message, true)), 250); }
+    lastFingerprint = fingerprint(data); dirty = false;
+    localStorage.removeItem(PENDING_KEY);
     status('Đã đồng bộ dữ liệu lên Firebase lúc ' + new Date().toLocaleTimeString('vi-VN'));
   }
   function choiceKey(user) {
@@ -120,14 +116,8 @@
       // không cho snapshot cloud cũ ghi đè và làm giao dịch biến mất sau khoảng một giây.
       if (localStorage.getItem(PENDING_KEY) === '1') {
         await writeCloud(user);
-        // Làm mới snapshot sau khi upload để không xử lý bản remote cũ đã đọc trước đó.
-        const refreshed = await ref.get();
         lastFingerprint = fingerprint(collectLocal());
         localStorage.setItem(choiceKey(user), 'local');
-        if (refreshed.exists) {
-          unsubscribe = ref.onSnapshot(snapshot => handleSnapshot(snapshot), e => status('Lỗi theo dõi đồng bộ: ' + e.message, true));
-          return;
-        }
       }
       const key = choiceKey(user);
       let choice = localStorage.getItem(key);
@@ -150,23 +140,20 @@
         else lastFingerprint = localFingerprint;
       }
     }
-    function handleSnapshot(snapshot) {
-      if (!snapshot.exists || !auth?.currentUser) return;
+    unsubscribe = ref.onSnapshot(async snapshot => {
+      if (!snapshot.exists || !auth.currentUser) return;
       const remote = snapshot.data();
       if (remote.ownerUid !== auth.currentUser.uid) { status('Tài khoản không có quyền đọc bộ dữ liệu này.', true); return; }
       const remoteFingerprint = fingerprint(remote.data || {});
       if (remoteFingerprint === lastFingerprint) return;
-      // Local đang chờ ghi thì tuyệt đối không để snapshot cũ ghi đè giao dịch vừa nhập.
-      if (dirty || localStorage.getItem(PENDING_KEY) === '1') {
-        clearTimeout(timer);
-        timer = setTimeout(() => writeCloud(auth?.currentUser).catch(e => status('Đồng bộ thất bại: ' + e.message, true)), 250);
-        return;
+      if (dirty) {
+        const useRemote = await (window.appConfirm ? window.appConfirm('Dữ liệu trên đám mây và thiết bị này đều đã thay đổi. Chọn dùng bản đám mây để thay dữ liệu cục bộ, hoặc giữ bản trên thiết bị này để tải lên đám mây.', {title:'Xung đột đồng bộ', confirmText:'Dùng bản đám mây', confirmClass:'bg-brand-primary hover:bg-purple-700'}) : Promise.resolve(false));
+        if (useRemote) { applyRemote(remote.data || {}); location.reload(); }
+        else writeCloud(auth.currentUser).catch(e => status('Không thể ghi dữ liệu: ' + e.message, true));
+      } else {
+        applyRemote(remote.data || {}); status('Dữ liệu mới từ thiết bị khác đã được đồng bộ.'); location.reload();
       }
-      applyRemote(remote.data || {});
-      status('Dữ liệu mới từ thiết bị khác đã được đồng bộ.');
-      location.reload();
-    }
-    unsubscribe = ref.onSnapshot(handleSnapshot, e => status('Lỗi theo dõi đồng bộ: ' + e.message, true));
+    }, e => status('Lỗi theo dõi đồng bộ: ' + e.message, true));
   }
   window.openCloudSyncModal = function () {
     const modal = document.getElementById('cloud-sync-modal');

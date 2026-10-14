@@ -20,11 +20,5 @@
  // prevent the page background from briefly becoming white on navigation
  document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;const href=a.getAttribute('href');if(!href||href.startsWith('#')||a.target==='_blank'||e.ctrlKey||e.metaKey||e.shiftKey||e.altKey)return;if(/^(https?:|mailto:|tel:|javascript:)/i.test(href))return;sessionStorage.setItem('fb-nav-bg',document.documentElement.classList.contains('dark')?'dark':'light');});
  window.addEventListener('storage',e=>{if([PROFILE_KEY,WS_KEY,PERSON_KEY,TX_KEY].includes(e.key)){refreshProfile();if(document.getElementById('history-list')&&typeof window.updateAccountsPage==='function')window.updateAccountsPage()}});
- // Trang Tài khoản là chế độ xem; chọn A/B ở đây không đổi người dùng đang nhập giao dịch.
- if (/tai-khoan\.html$/i.test(location.pathname)) {
-   const savedPerson = localStorage.getItem(PERSON_KEY) || 'user1';
-   const savedWorkspace = localStorage.getItem(WS_KEY) || savedPerson;
-   window.addEventListener('pagehide',()=>{localStorage.setItem(PERSON_KEY,savedPerson);localStorage.setItem(WS_KEY,savedWorkspace);});
- }
- document.addEventListener('DOMContentLoaded',()=>{const scrollArea=document.getElementById('main-scroll-area');if(scrollArea){scrollArea.addEventListener('scroll',()=>scrollArea.classList.toggle('is-scrolled',scrollArea.scrollTop>36),{passive:true});}const bg=sessionStorage.getItem('fb-nav-bg');if(bg){document.documentElement.classList.toggle('dark',bg==='dark');sessionStorage.removeItem('fb-nav-bg')}refreshProfile();const name=document.getElementById('profile-display-name');if(name){name.addEventListener('change',()=>{});const form=name.closest('form');if(form)form.addEventListener('submit',e=>{e.preventDefault();window.saveCurrentProfile()})}if(document.getElementById('history-list')){try{if(typeof window.updateAccountsPage==='function')window.updateAccountsPage()}catch(e){console.warn(e)}}});
+ document.addEventListener('DOMContentLoaded',()=>{const bg=sessionStorage.getItem('fb-nav-bg');if(bg){document.documentElement.classList.toggle('dark',bg==='dark');sessionStorage.removeItem('fb-nav-bg')}refreshProfile();const name=document.getElementById('profile-display-name');if(name){name.addEventListener('change',()=>{});const form=name.closest('form');if(form)form.addEventListener('submit',e=>{e.preventDefault();window.saveCurrentProfile()})}if(document.getElementById('history-list')){try{if(typeof window.updateAccountsPage==='function')window.updateAccountsPage()}catch(e){console.warn(e)}}});
 })();

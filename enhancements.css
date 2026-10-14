@@ -47,8 +47,3 @@ body{opacity:1;animation:fb-page-enter .22s ease-out both;}
   .floating-save-button{width:60px;height:60px;right:max(15px,env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));font-size:22px}
 }
 @media(prefers-reduced-motion:reduce){.floating-save-button{animation:none}}
-
-/* Cuộn lịch sử: phần đầu trang thu gọn nhẹ để dành không gian cho danh sách. */
-#main-scroll-area{scroll-behavior:smooth;overscroll-behavior-y:contain}
-#main-scroll-area .sticky, #main-scroll-area header{transition:padding .22s ease,transform .22s ease,opacity .22s ease}
-#main-scroll-area.is-scrolled .animate-view>div:first-child{transform:scale(.985);transform-origin:top center;transition:transform .22s ease}
