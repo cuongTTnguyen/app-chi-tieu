@@ -214,10 +214,16 @@
         window.addEventListener('resize', check);
         check();
       }
-      floating.addEventListener('click', () => {
-        if (form.requestSubmit) form.requestSubmit(mainButton);
-        else mainButton.click();
-      });
+      // Kéo thả nút lưu như bong bóng chat; vị trí được lưu trên thiết bị.
+      const posKey = 'so_chi_tieu_cl_floating_save_position';
+      try { const saved = JSON.parse(localStorage.getItem(posKey) || 'null'); if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) { floating.style.left = saved.x + 'px'; floating.style.top = saved.y + 'px'; floating.style.right = 'auto'; floating.style.bottom = 'auto'; } } catch (_) {}
+      let drag = null, moved = false;
+      floating.style.touchAction = 'none';
+      floating.addEventListener('pointerdown', e => { if (e.button !== 0 && e.pointerType === 'mouse') return; const r=floating.getBoundingClientRect(); drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top,startX:e.clientX,startY:e.clientY}; moved=false; floating.setPointerCapture?.(e.pointerId); });
+      floating.addEventListener('pointermove', e => { if(!drag || drag.id!==e.pointerId)return; if(Math.abs(e.clientX-drag.startX)+Math.abs(e.clientY-drag.startY)>7)moved=true; if(!moved)return; const x=Math.max(6,Math.min(innerWidth-floating.offsetWidth-6,e.clientX-drag.dx)); const y=Math.max(6,Math.min(innerHeight-floating.offsetHeight-6,e.clientY-drag.dy)); floating.style.left=x+'px';floating.style.top=y+'px';floating.style.right='auto';floating.style.bottom='auto'; });
+      const endDrag = e => { if(!drag)return; if(moved){const r=floating.getBoundingClientRect();localStorage.setItem(posKey,JSON.stringify({x:r.left,y:r.top}));floating.dataset.dragged='1';setTimeout(()=>delete floating.dataset.dragged,0);}drag=null; };
+      floating.addEventListener('pointerup',endDrag); floating.addEventListener('pointercancel',endDrag);
+      floating.addEventListener('click', e => { if(floating.dataset.dragged==='1'){e.preventDefault();e.stopImmediatePropagation();return;} if (form.requestSubmit) form.requestSubmit(mainButton); else mainButton.click(); });
       form.addEventListener('submit', () => floating.classList.add('floating-save-hidden'));
     })();
     </script>
