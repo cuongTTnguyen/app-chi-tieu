@@ -9,6 +9,8 @@
   };
   let auth = null, db = null, unsubscribe = null, initialized = false;
   let dirty = false, applyingRemote = false, lastFingerprint = '', timer = null;
+  // Dấu hiệu thay đổi cục bộ cần được đẩy lên cloud, kể cả khi chuyển trang ngay sau khi lưu.
+  const PENDING_KEY = 'finance_buddy_pending_cloud_sync';
 
   const status = (message, error = false) => {
     const el = document.getElementById('cloud-sync-status');
@@ -90,6 +92,7 @@
     const data = collectLocal();
     await docRef().set({ ownerUid: user.uid, data, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
     lastFingerprint = fingerprint(data); dirty = false;
+    localStorage.removeItem(PENDING_KEY);
     status('Đã đồng bộ dữ liệu lên Firebase lúc ' + new Date().toLocaleTimeString('vi-VN'));
   }
   function choiceKey(user) {
@@ -109,6 +112,13 @@
     } else {
       const remote = snap.data();
       if (remote.ownerUid !== user.uid) throw new Error('Tài khoản này không có quyền với bộ dữ liệu đồng bộ đã chọn.');
+      // Nếu trang trước vừa lưu giao dịch rồi điều hướng, ưu tiên dữ liệu local đang chờ tải lên,
+      // không cho snapshot cloud cũ ghi đè và làm giao dịch biến mất sau khoảng một giây.
+      if (localStorage.getItem(PENDING_KEY) === '1') {
+        await writeCloud(user);
+        lastFingerprint = fingerprint(collectLocal());
+        localStorage.setItem(choiceKey(user), 'local');
+      }
       const key = choiceKey(user);
       let choice = localStorage.getItem(key);
       if (choice !== 'cloud' && choice !== 'local') {
@@ -191,7 +201,10 @@ window.FinanceCloudSync = {
   init: init,
 
   scheduleSync: function () {
-    if (applyingRemote || !auth?.currentUser || !db) return;
+    if (applyingRemote) return;
+    // Ghi dấu ngay lập tức trước khi trang có thể điều hướng sang index.html.
+    localStorage.setItem(PENDING_KEY, '1');
+    if (!auth?.currentUser || !db) return;
 
     dirty = true;
     clearTimeout(timer);
