@@ -1,0 +1,3 @@
+/* AI reminder visual fallback */
+#scl-ai-settings:hover{transform:translateY(-2px);filter:brightness(.98)}
+@media(prefers-reduced-motion:reduce){#scl-ai-toast{animation:none!important}}

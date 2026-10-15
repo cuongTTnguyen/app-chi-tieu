@@ -42,10 +42,10 @@
                     
                     <div class="relative z-10">
                         <div class="flex justify-between items-center mb-2">
-                            <p class="text-base font-semibold opacity-90 tracking-wide">TỔNG SỐ TIỀN ĐANG CÓ</p>
+                            <button type="button" id="fund-view-button" onclick="toggleFundPicker()" class="text-base font-semibold opacity-95 tracking-wide inline-flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 px-3 py-2"><span id="fund-view-name">Đang xem: Tất cả quỹ</span><i class="fas fa-chevron-down text-sm"></i></button>
                             <i class="fas fa-gem text-2xl opacity-80"></i>
                         </div>
-                        <h2 class="text-3xl sm:text-4xl md:text-6xl leading-tight font-extrabold tracking-tight mb-4 sm:mb-6 drop-shadow-md break-words" id="main-balance">0đ</h2>
+                        <h2 class="text-3xl sm:text-4xl md:text-6xl leading-tight font-extrabold tracking-tight mb-1 drop-shadow-md break-words" id="main-balance">0đ</h2><p id="main-balance-fund-label" class="text-sm font-bold opacity-90 mb-4 sm:mb-6">Tất cả quỹ</p><div id="fund-picker" class="hidden fixed z-[200] left-3 right-3 sm:left-auto sm:right-6 sm:w-80 max-h-[30dvh] overflow-y-auto overscroll-contain rounded-2xl bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-2xl border border-white/30 p-2"></div>
                         
                         <div class="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 bg-white/20 p-3 sm:p-4 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-white/30 w-full max-w-full min-w-0 shadow-inner">
                             <div class="flex items-center gap-3 pr-1 min-w-0 flex-1">

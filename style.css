@@ -20,6 +20,20 @@
 .btn-bouncy:active { 
     transform: scale(0.92); 
 }
+/* Nút + cố định giữa màn hình: giữ tâm khi nhấn, không mất translateX(-50%). */
+.md\:hidden.fixed.left-1\/2.btn-bouncy:active {
+    transform: translateX(-50%) scale(0.92);
+}
+#fund-picker {
+    max-height: 30dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 18px;
+    scroll-behavior: smooth;
+    scroll-padding-bottom: 18px;
+    scroll-behavior: smooth;
+}
 
 /* Hiệu ứng kính cho overlay */
 .glass-panel {

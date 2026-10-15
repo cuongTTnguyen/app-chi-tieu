@@ -82,7 +82,7 @@
     </nav>
 
     <!-- NÚT FAB Ở GIỮA ĐÁY CHO MOBILE -->
-    <a href="edit.html" class="md:hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 w-14 h-14 bg-gradient-to-tr from-brand-primary to-pink-500 rounded-full text-white text-2xl flex items-center justify-center shadow-[0_8px_20px_rgba(139,92,246,0.5)] btn-bouncy z-50 ring-[6px] ring-slate-50 dark:ring-[6px] dark:ring-slate-900/50 transition-transform pb-safe">
+    <a href="edit.html" class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-14 h-14 bg-gradient-to-tr from-brand-primary to-pink-500 rounded-full text-white text-2xl flex items-center justify-center shadow-[0_8px_20px_rgba(139,92,246,0.5)] btn-bouncy z-50 ring-[6px] ring-slate-50 dark:ring-[6px] dark:ring-slate-900/50 pb-safe">
         <i class="fas fa-plus"></i>
     </a>
 
@@ -109,6 +109,10 @@
                     <div class="relative w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-bell text-amber-600 dark:text-amber-300 text-2xl"></i><span id="reminder-due-badge" class="hidden absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold items-center justify-center">0</span></div>
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Nhắc định kỳ</span>
                 </button>
+                <a href="no.html" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
+                    <div class="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-handshake text-emerald-600 dark:text-emerald-300 text-2xl"></i></div>
+                    <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Ghi nợ</span>
+                </a>
                 <button type="button" onclick="openCloudSyncModal()" class="flex flex-col items-center justify-start space-y-2 cursor-pointer group">
                     <div class="w-14 h-14 rounded-2xl bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform"><i class="fas fa-cloud text-violet-600 dark:text-violet-300 text-2xl"></i></div>
                     <span class="text-[11px] font-bold text-slate-600 dark:text-slate-400 text-center leading-tight">Đồng bộ Firebase</span>
@@ -159,6 +163,7 @@
     // Toast + hộp xác nhận tuỳ biến, không dùng alert/confirm của trình duyệt.
     const interactionUI = `
       <div id="app-toast-region" class="fixed top-4 right-4 z-[220] flex flex-col gap-3 w-[min(92vw,390px)] pointer-events-none" aria-live="polite" aria-atomic="false"></div>
+      <div id="app-prompt-modal" class="fixed inset-0 z-[240] hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true"><form id="app-prompt-form" class="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-2xl"><h3 id="app-prompt-title" class="text-lg font-extrabold mb-3">Nhập thông tin</h3><label id="app-prompt-message" for="app-prompt-input" class="block text-sm font-semibold mb-2"></label><input id="app-prompt-input" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 p-3 mb-4" autocomplete="off"><div class="flex gap-3"><button id="app-prompt-cancel" type="button" class="flex-1 rounded-xl bg-slate-100 dark:bg-slate-700 font-bold p-3">Hủy</button><button type="submit" class="flex-1 rounded-xl bg-brand-primary text-white font-extrabold p-3">Lưu</button></div></form></div>
       <div id="app-confirm-modal" class="fixed inset-0 z-[230] hidden items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">
         <div class="w-full max-w-md rounded-3xl bg-white dark:bg-slate-800 p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-700">
           <div class="flex items-start gap-3 mb-3"><div class="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-900/40 text-amber-600 flex items-center justify-center shrink-0"><i class="fas fa-circle-question text-xl"></i></div><div class="min-w-0"><h3 id="app-confirm-title" class="text-lg font-extrabold">Xác nhận thao tác</h3><p id="app-confirm-message" class="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line"></p></div></div>
@@ -179,6 +184,19 @@
       const close = document.createElement('button'); close.type='button'; close.className='text-slate-400 hover:text-slate-700 dark:hover:text-white'; close.setAttribute('aria-label','Đóng thông báo'); close.innerHTML='<i class="fas fa-times"></i>'; close.addEventListener('click',()=>toast.remove());
       toast.append(icon, content, close); region.appendChild(toast);
       window.setTimeout(()=>{ if(toast.isConnected) toast.remove(); }, Number(options.duration) || 4000);
+    };
+    window.appPrompt = function(message, defaultValue = '', options = {}) {
+      return new Promise(resolve => {
+        const modal = document.getElementById('app-prompt-modal');
+        if (!modal) { resolve(null); return; }
+        const title = document.getElementById('app-prompt-title'), label = document.getElementById('app-prompt-message'), input = document.getElementById('app-prompt-input');
+        title.textContent = options.title || 'Nhập thông tin'; label.textContent = String(message || ''); input.value = String(defaultValue ?? '');
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+        const finish = value => { modal.classList.add('hidden'); modal.classList.remove('flex'); form.removeEventListener('submit', onSubmit); cancel.removeEventListener('click', onCancel); modal.removeEventListener('click', onBackdrop); document.removeEventListener('keydown', onKey); resolve(value); };
+        const form = document.getElementById('app-prompt-form'), cancel = document.getElementById('app-prompt-cancel');
+        const onSubmit = e => { e.preventDefault(); finish(input.value); }, onCancel = () => finish(null), onBackdrop = e => { if(e.target === modal) finish(null); }, onKey = e => { if(e.key === 'Escape') finish(null); };
+        form.addEventListener('submit', onSubmit); cancel.addEventListener('click', onCancel); modal.addEventListener('click', onBackdrop); document.addEventListener('keydown', onKey); input.focus(); input.select();
+      });
     };
     window.appConfirm = function(message, options = {}) {
       return new Promise(resolve => {

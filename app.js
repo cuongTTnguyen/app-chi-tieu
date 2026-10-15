@@ -55,17 +55,25 @@ const defaultCategoriesData = {
     ]
 };
 
-// Khởi tạo danh mục từ LocalStorage
+// Danh mục được tách hoàn toàn theo không gian: Người A, Người B, Quỹ Chung.
 function getCategories() {
-    const data = localStorage.getItem(STORAGE_KEY_CATEGORIES);
-    if (data) return JSON.parse(data);
-    localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(defaultCategoriesData));
-    return defaultCategoriesData;
+    const ws = ['user1','user2','shared'].includes(currentWorkspace) ? currentWorkspace : (localStorage.getItem(STORAGE_KEY_ACTIVE_PERSON) || 'user1');
+    const scopedKey = STORAGE_KEY_CATEGORIES + '_' + ws;
+    const scoped = localStorage.getItem(scopedKey);
+    if (scoped) { try { return JSON.parse(scoped); } catch (_) {} }
+    // Chỉ dùng dữ liệu cũ để khởi tạo lần đầu cho Người A; không sao chép danh mục tùy chỉnh sang người khác.
+    let base = JSON.parse(JSON.stringify(defaultCategoriesData));
+    if (ws === 'user1') {
+        const legacy = localStorage.getItem(STORAGE_KEY_CATEGORIES);
+        if (legacy) { try { base = JSON.parse(legacy); } catch (_) {} }
+    }
+    localStorage.setItem(scopedKey, JSON.stringify(base));
+    return base;
 }
 let categoriesData = getCategories();
-
 function saveCategories(data) {
-    localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(data));
+    const ws = ['user1','user2','shared'].includes(currentWorkspace) ? currentWorkspace : activePerson;
+    localStorage.setItem(STORAGE_KEY_CATEGORIES + '_' + ws, JSON.stringify(data));
     categoriesData = data;
     window.FinanceCloudSync?.scheduleSync('categories');
 }
@@ -109,44 +117,69 @@ function normalizeLegacyTransactions() {
     if (changed) saveTransactions(dbTransactions);
 }
 
-// --- QUẢN LÝ QUỸ/TÀI KHOẢN ---
+// --- QUẢN LÝ QUỸ/TÀI KHOẢN: dữ liệu riêng theo không gian ---
 const STORAGE_KEY_FUNDS = 'finance_buddy_funds';
+function fundsStorageKey() { return STORAGE_KEY_FUNDS + '_' + (['user1','user2','shared'].includes(currentWorkspace) ? currentWorkspace : activePerson); }
 function getFunds() {
-    const saved = localStorage.getItem(STORAGE_KEY_FUNDS);
+    const key = fundsStorageKey();
+    const saved = localStorage.getItem(key);
     if (saved) { try { return JSON.parse(saved); } catch (e) {} }
-    const defaults = [
-        {id:'main', name:'Tài Khoản Chính', type:'personal'},
-        {id:'cash', name:'Tiền Mặt', type:'personal'},
-        {id:'savings', name:'Quỹ Tiết Kiệm', type:'personal'},
-        {id:'shared-main', name:'Quỹ Chung', type:'shared'}
-    ];
-    localStorage.setItem(STORAGE_KEY_FUNDS, JSON.stringify(defaults));
+    // Mỗi không gian khởi tạo bản riêng, không dùng chung mảng quỹ có thể chỉnh sửa.
+    let defaults = currentWorkspace === 'shared'
+      ? [{id:'shared-main', name:'Quỹ Chung', type:'shared'}]
+      : [{id:'main', name:'Tài Khoản Chính', type:'personal'}, {id:'cash', name:'Tiền Mặt', type:'personal'}, {id:'savings', name:'Quỹ Tiết Kiệm', type:'personal'}];
+    if (currentWorkspace === 'user1') {
+      const legacy = localStorage.getItem(STORAGE_KEY_FUNDS);
+      if (legacy) { try { const parsed=JSON.parse(legacy); if(Array.isArray(parsed)) defaults=parsed.filter(f=>f.type!=='shared'); } catch(e) {} }
+    }
+    localStorage.setItem(key, JSON.stringify(defaults));
     return defaults;
 }
-function saveFunds(funds) { localStorage.setItem(STORAGE_KEY_FUNDS, JSON.stringify(funds)); renderFundOptions(); window.FinanceCloudSync?.scheduleSync('funds'); }
 function renderFundOptions() {
-    const select = document.getElementById('input-account'); if (!select) return;
-    const old = select.value;
-    select.innerHTML = getFunds().map(f => `<option value="${escapeHTML(f.id)}">${escapeHTML(f.name)}${f.type === 'shared' ? ' · Quỹ chung' : ''}</option>`).join('');
-    if (getFunds().some(f => f.id === old)) select.value = old;
-    else select.value = getFunds().find(f => f.type === 'personal')?.id || 'main';
+    // Cập nhật mọi ô chọn quỹ sau khi đổi người dùng hoặc thêm/sửa/xóa quỹ.
+    const funds = getFunds();
+    const accountSelect = document.getElementById('input-account');
+    const transferSelect = document.getElementById('transfer-to-account');
+    const oldAccount = accountSelect?.value || '';
+    const oldTransfer = transferSelect?.value || '';
+    const optionHTML = funds.map(f => `<option value="${escapeHTML(f.id)}">${escapeHTML(f.name)}${f.type === 'shared' ? ' (Quỹ chung)' : ''}</option>`).join('');
+    if (accountSelect) {
+        accountSelect.innerHTML = optionHTML || '<option value="">Chưa có ví/quỹ</option>';
+        if (funds.some(f => String(f.id) === oldAccount)) accountSelect.value = oldAccount;
+        else if (funds.length) accountSelect.value = funds[0].id;
+    }
+    if (transferSelect) {
+        const sourceId = accountSelect?.value || '';
+        const destinations = funds.filter(f => String(f.id) !== String(sourceId));
+        transferSelect.innerHTML = destinations.map(f => `<option value="${escapeHTML(f.id)}">${escapeHTML(f.name)}${f.type === 'shared' ? ' (Quỹ chung)' : ''}</option>`).join('') || '<option value="">Không có quỹ đích</option>';
+        if (destinations.some(f => String(f.id) === oldTransfer)) transferSelect.value = oldTransfer;
+    }
+    // Các trang có bộ chọn quỹ trên dashboard.
+    if (typeof renderIndexFundPicker === 'function' && typeof getWorkspaceTransactions === 'function') {
+        try { renderIndexFundPicker(getWorkspaceTransactions()); } catch (_) {}
+    }
+}
+function saveFunds(funds) {
+    localStorage.setItem(fundsStorageKey(), JSON.stringify(funds));
+    renderFundOptions();
+    window.FinanceCloudSync?.scheduleSync('funds');
 }
 function escapeHTML(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function openFundManager() { renderFundManager(); const m=document.getElementById('fund-manager-modal'); if(m) { m.classList.remove('hidden'); m.classList.add('flex'); } }
 function closeFundManager() { const m=document.getElementById('fund-manager-modal'); if(m) { m.classList.add('hidden'); m.classList.remove('flex'); } }
 function renderFundManager() {
     const list=document.getElementById('fund-manager-list'); if(!list) return;
-    list.innerHTML=getFunds().map(f=>`<div class="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"><div class="flex-1 min-w-0"><div class="font-bold">${escapeHTML(f.name)}</div><div class="text-xs text-slate-500">${f.type==='shared'?'Quỹ chung':'Ví cá nhân'}</div></div><button type="button" onclick="editFund('${escapeHTML(f.id)}')" class="px-3 py-2 rounded-lg text-brand-primary font-bold">Sửa</button><button type="button" onclick="deleteFund('${escapeHTML(f.id)}')" class="px-3 py-2 rounded-lg text-rose-500 font-bold">Xóa</button></div>`).join('');
+    list.innerHTML=getFunds().map(f=>`<div class="flex items-center gap-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700"><div class="flex-1 min-w-0"><div class="font-bold">${escapeHTML(f.name)}</div><div class="text-xs text-slate-500">${currentWorkspace==='shared'?'Không gian Quỹ Chung':(currentWorkspace==='user2'?'Ví/quỹ riêng Người B':'Ví/quỹ riêng Người A')}</div></div><button type="button" onclick="editFund('${escapeHTML(f.id)}')" class="px-3 py-2 rounded-lg text-brand-primary font-bold">Sửa</button><button type="button" onclick="deleteFund('${escapeHTML(f.id)}')" class="px-3 py-2 rounded-lg text-rose-500 font-bold">Xóa</button></div>`).join('');
 }
 function addFund() {
     const nameEl=document.getElementById('new-fund-name'), typeEl=document.getElementById('new-fund-type');
     const name=nameEl?.value.trim(); if(!name){appToast('Vui lòng nhập tên quỹ.');return;}
     const funds=getFunds(); funds.push({id:'fund_'+Date.now(),name,type:typeEl?.value==='shared'?'shared':'personal'}); saveFunds(funds); nameEl.value=''; renderFundManager();
 }
-function editFund(id) {
+async function editFund(id) {
     const funds=getFunds(), fund=funds.find(f=>f.id===id); if(!fund)return;
-    const name=prompt('Tên quỹ mới:',fund.name); if(name===null)return; if(!name.trim()){appToast('Tên quỹ không được để trống.');return;}
-    const type=prompt('Loại quỹ: nhập "personal" cho ví cá nhân hoặc "shared" cho quỹ chung.',fund.type); if(type===null)return;
+    const name=await window.appPrompt('Tên quỹ mới:',fund.name,{title:'Sửa ví/quỹ'}); if(name===null)return; if(!name.trim()){appToast('Tên quỹ không được để trống.');return;}
+    const type=await window.appPrompt('Nhập personal cho ví cá nhân hoặc shared cho quỹ chung.',fund.type,{title:'Loại ví/quỹ'}); if(type===null)return;
     const nextType=type.toLowerCase()==='shared'?'shared':'personal';
     if (nextType !== fund.type && dbTransactions.some(t => t.account === id)) { appToast('Quỹ đã có giao dịch nên không thể đổi loại để tránh chuyển nhầm dữ liệu giữa cá nhân và quỹ chung. Bạn vẫn có thể đổi tên quỹ.'); return; }
     fund.name=name.trim(); fund.type=nextType; saveFunds(funds); renderFundManager();
@@ -244,6 +277,9 @@ function setWorkspace(ws) {
         localStorage.setItem(STORAGE_KEY_ACTIVE_PERSON, activePerson);
     }
     localStorage.setItem(STORAGE_KEY_WORKSPACE, ws);
+    // Danh mục tự tạo được nạp riêng theo người dùng hiện tại.
+    try { categoriesData = getCategories(); if(document.getElementById('category-grid')) renderEditCategories(editMode); } catch (_) {}
+    try { renderFundOptions(); } catch (_) {}
     
     const indicator = document.getElementById('workspace-indicator');
     if (indicator) {
@@ -351,11 +387,23 @@ function setChartMode(type) {
     updateChartData();
 }
 
+function toggleFundPicker(){const el=document.getElementById('fund-picker'),btn=document.getElementById('fund-view-button');if(!el||!btn)return;const opening=el.classList.contains('hidden');if(!opening){el.classList.add('hidden');return;}const r=btn.getBoundingClientRect(),mobile=window.innerWidth<640;const width=mobile?Math.min(window.innerWidth-24,420):Math.min(320,window.innerWidth-32);const left=mobile?12:Math.max(16,Math.min(r.left,window.innerWidth-width-16));const top=Math.min(r.bottom+8,Math.max(8,window.innerHeight-190));el.style.top=top+'px';el.style.left=left+'px';el.style.right='auto';el.style.width=width+'px';el.style.maxHeight=Math.max(120,Math.min(window.innerHeight*0.30,window.innerHeight-top-210))+'px';el.classList.remove('hidden');}
+function renderIndexFundPicker(txs){const el=document.getElementById('fund-picker');if(!el)return;const funds=getFunds();const selected=localStorage.getItem('so_chi_tieu_cl_index_fund')||'all';const balance=id=>{let n=0;txs.filter(t=>t.account===id).forEach(t=>n+=(t.type==='income'?1:-1)*Number(t.amount||0));return n;};const row=(id,name,amount)=>`<button type="button" onclick="selectIndexFund('${id}')" class="w-full text-left p-3 rounded-xl hover:bg-violet-50 dark:hover:bg-slate-700 ${selected===id?'bg-violet-100 dark:bg-slate-700':''}"><span class="block font-extrabold">${name}</span><span class="block text-sm opacity-70">${formatCurrency(amount)}</span></button>`;el.innerHTML=row('all','Tất cả quỹ',txs.reduce((a,t)=>a+(t.type==='income'?1:-1)*Number(t.amount||0),0))+funds.map(f=>row(f.id,escapeHTML(f.name),balance(f.id))).join('');}
+function selectIndexFund(id){localStorage.setItem('so_chi_tieu_cl_index_fund',id);document.getElementById('fund-picker')?.classList.add('hidden');updateDashboard();}
+
 function updateDashboard() {
+    const allWorkspaceTx = getWorkspaceTransactions();
+    const fundsNow = getFunds();
+    const savedFund = localStorage.getItem('so_chi_tieu_cl_index_fund') || 'all';
+    const selectedFund = fundsNow.find(f => f.id === savedFund);
+    const visibleTx = selectedFund ? allWorkspaceTx.filter(t => t.account === selectedFund.id) : allWorkspaceTx;
+    const fundBtn=document.getElementById('fund-view-name'); if(fundBtn) fundBtn.textContent=selectedFund ? selectedFund.name : 'Đang xem: Tất cả quỹ';
+    const fundLabel=document.getElementById('main-balance-fund-label'); if(fundLabel) fundLabel.textContent=selectedFund ? selectedFund.name : 'Tất cả quỹ';
+    renderIndexFundPicker(allWorkspaceTx);
     let totalIn = 0, totalOut = 0;
-    getWorkspaceTransactions().forEach(t => {
-        if(t.type === 'income') totalIn += t.amount;
-        if(t.type === 'expense') totalOut += t.amount;
+    visibleTx.forEach(t => {
+        if(t.type === 'income' && !t.isTransfer) totalIn += t.amount;
+        if(t.type === 'expense' && !t.isTransfer) totalOut += t.amount;
     });
     
     const bal = totalIn - totalOut;
@@ -373,7 +421,7 @@ function updateDashboard() {
 function updateChartData() {
     const timeVal = document.getElementById('time-filter').value;
     const filtered = filterDataByDate(getWorkspaceTransactions(), timeVal);
-    const targetData = filtered.filter(t => t.type === chartMode);
+    const targetData = filtered.filter(t => t.type === chartMode && !t.isTransfer);
     
     const agg = {};
     targetData.forEach(t => {
@@ -606,7 +654,7 @@ function handleFormSubmit(e) {
     const amtStr = document.getElementById('input-amount').value;
     const cat = document.getElementById('input-category').value;
     
-    if(!cat) {
+    if(!cat && !document.getElementById('transfer-mode')?.checked) {
         document.getElementById('category-error').classList.remove('hidden');
         return;
     }
@@ -616,6 +664,16 @@ function handleFormSubmit(e) {
 
     const selectedFundId = document.getElementById('input-account').value;
     const selectedFund = getFunds().find(f => f.id === selectedFundId);
+    // Chuyển quỹ tạo hai bút toán đối ứng, không tính vào thu/chi.
+    if(document.getElementById('transfer-mode')?.checked){
+        const toId=document.getElementById('transfer-to-account')?.value;
+        if(!toId || toId===selectedFundId){appToast('Hãy chọn quỹ nhận khác quỹ nguồn.');return;}
+        const toFund=getFunds().find(f=>f.id===toId); if(!toFund){appToast('Không tìm thấy quỹ nhận.');return;}
+        const date=document.getElementById('input-date').value, note=(document.getElementById('input-note').value||'Chuyển quỹ').trim();
+        dbTransactions.unshift({id:Date.now(),type:'expense',workspace:selectedFund?.type==='shared'?'shared':activePerson,amount:amt,account:selectedFundId,category:'transfer',date,tag:'chuyển quỹ',note:`Chuyển đến ${toFund.name}: ${note}`,transferId:'tr_'+Date.now(),isTransfer:true});
+        dbTransactions.unshift({id:Date.now()+1,type:'income',workspace:toFund.type==='shared'?'shared':activePerson,amount:amt,account:toId,category:'transfer',date,tag:'chuyển quỹ',note:`Nhận từ ${selectedFund?.name||'quỹ nguồn'}: ${note}`,transferId:'tr_'+(Date.now()),isTransfer:true});
+        saveTransactions(dbTransactions);window.location.href='index.html';return;
+    }
     // Giao dịch cá nhân luôn thuộc người đã chọn gần nhất; không tự rơi về Người A khi đang xem Quỹ Chung.
     const newTx = {
         id: Date.now(),
@@ -797,7 +855,32 @@ function toggleHistoryView() {
 // --- 7. LOGIC THÊM DANH MỤC TÙY CHỌN ---
 function openAddCategoryModal() {
     const modal = document.getElementById('add-category-modal');
-    if(modal) modal.classList.remove('hidden');
+    if (!modal) return;
+    const title=document.getElementById('category-modal-title');
+    if(title) title.textContent='Chỉnh sửa danh mục';
+    const saveBtn=document.getElementById('save-category-button');
+    if(saveBtn){saveBtn.textContent='Thêm danh mục mới';saveBtn.dataset.editId='';}
+    const name=document.getElementById('new-cat-name'); if(name) name.value='';
+    renderCategoryManagerList();
+    modal.classList.remove('hidden');
+}
+function renderCategoryManagerList(){
+    const list=document.getElementById('category-manager-list'); if(!list)return;
+    const items=(categoriesData[editMode]||[]);
+    list.innerHTML=items.map(c=>`<div class="flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 p-2"><span class="flex-1 min-w-0 font-bold text-sm truncate"><i class="${escapeHTML(c.icon||'fas fa-tag')} mr-2" style="color:${escapeHTML(c.color||'#8b5cf6')}"></i>${escapeHTML(c.name)}</span><button type="button" onclick="editCategoryItem('${String(c.id).replace(/'/g, '\\&#39;')}')" class="text-xs font-bold text-brand-primary px-2 py-1">Sửa</button><button type="button" onclick="deleteCategoryItem('${String(c.id).replace(/'/g, '\\&#39;')}')" class="text-xs font-bold text-rose-500 px-2 py-1">Xóa</button></div>`).join('') || '<p class="text-sm text-slate-500">Chưa có danh mục.</p>';
+}
+async function editCategoryItem(id){
+    const c=(categoriesData[editMode]||[]).find(x=>String(x.id)===String(id)); if(!c)return;
+    const name=await window.appPrompt('Sửa tên danh mục:',c.name,{title:'Chỉnh sửa danh mục'}); if(name===null)return;
+    if(!name.trim()){appToast('Tên danh mục không được để trống.');return;}
+    c.name=name.trim(); saveCategories(categoriesData); renderEditCategories(editMode); renderCategoryManagerList(); appToast('Đã cập nhật danh mục.','success');
+}
+async function deleteCategoryItem(id){
+    const c=(categoriesData[editMode]||[]).find(x=>String(x.id)===String(id)); if(!c)return;
+    if(!await window.appConfirm(`Xóa danh mục “${c.name}”?`,{title:'Xóa danh mục',confirmText:'Xóa',confirmClass:'bg-rose-600 hover:bg-rose-700'}))return;
+    categoriesData[editMode]=categoriesData[editMode].filter(x=>String(x.id)!==String(id)); saveCategories(categoriesData); renderEditCategories(editMode); renderCategoryManagerList();
+    if(document.getElementById('input-category')?.value===String(id)) document.getElementById('input-category').value='';
+    appToast('Đã xóa danh mục.','success');
 }
 
 function closeAddCategoryModal() {
@@ -843,7 +926,8 @@ function saveNewCategory() {
     };
 
     categoriesData[editMode].push(newCat);
-    saveCategories(categoriesData); 
+    saveCategories(categoriesData);
+    renderCategoryManagerList(); 
 
     closeAddCategoryModal();
     renderEditCategories(editMode);

@@ -71,7 +71,8 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="mb-6 rounded-2xl border-2 border-violet-200 dark:border-violet-800 p-4 bg-violet-50/70 dark:bg-violet-950/20"><label class="flex items-center gap-3 font-extrabold"><input id="transfer-mode" type="checkbox" class="w-5 h-5 accent-violet-600" onchange="toggleTransferMode()"> Chuyển quỹ (không tính là thu/chi)</label><div id="transfer-fields" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4"><div><label class="block text-sm font-bold mb-2">Quỹ nhận tiền</label><select id="transfer-to-account" class="w-full rounded-xl border p-3 bg-white dark:bg-slate-900 dark:border-slate-700"></select></div><p class="sm:col-span-2 text-xs text-slate-500">Tiền sẽ được ghi giảm ở quỹ nguồn và ghi tăng ở quỹ đích.</p></div></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <div>
                                 <div class="flex items-center justify-between mb-2"><label class="block text-sm font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Ví / Quỹ</label><button type="button" onclick="openFundManager()" class="text-xs font-extrabold text-brand-primary"><i class="fas fa-plus mr-1"></i>Quản lý quỹ</button></div>
                                 <div class="relative">
@@ -93,7 +94,7 @@
                         <div class="mb-8">
                             <div class="flex justify-between items-end mb-2">
                                 <label class="block text-sm font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Chọn Danh Mục</label>
-                                <button type="button" onclick="openAddCategoryModal()" class="text-xs font-bold text-brand-primary hover:text-brand-primaryHover flex items-center bg-brand-primary/10 px-2 py-1 rounded-lg"><i class="fas fa-plus mr-1"></i> Tạo mới</button>
+                                <button type="button" onclick="openAddCategoryModal()" class="text-xs font-bold text-brand-primary hover:text-brand-primaryHover flex items-center bg-brand-primary/10 px-2 py-1 rounded-lg"><i class="fas fa-sliders-h mr-1"></i> Chỉnh sửa danh mục</button>
                             </div>
                             <div id="category-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-3 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border-2 border-slate-100 dark:border-slate-800"></div>
                             <input type="hidden" id="input-category" required>
@@ -123,7 +124,7 @@
         <div id="add-category-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
             <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="closeAddCategoryModal()"></div>
             <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm p-6 relative z-10 shadow-bubbly dark:shadow-bubbly-dark animate-view border border-slate-100 dark:border-slate-700">
-                <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-4">Tạo Danh Mục Mới</h3>
+                <h3 id="category-modal-title" class="text-xl font-extrabold text-slate-800 dark:text-white mb-4">Chỉnh sửa danh mục</h3><div id="category-manager-list" class="max-h-44 overflow-y-auto space-y-2 mb-4"></div>
                 <div class="mb-5">
                     <label class="block text-sm font-bold text-slate-500 dark:text-slate-400 mb-2">Tên danh mục</label>
                     <input type="text" id="new-cat-name" placeholder="VD: Đổ xăng..." class="w-full bg-slate-50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-700 rounded-xl py-3 px-4 font-bold text-slate-800 dark:text-white focus:outline-none focus:border-brand-primary shadow-inner">
@@ -151,13 +152,13 @@
                 </div>
                 <div class="flex space-x-3">
                     <button type="button" onclick="closeAddCategoryModal()" class="flex-1 py-3.5 rounded-xl font-bold text-slate-500 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors btn-bouncy">Hủy</button>
-                    <button type="button" onclick="saveNewCategory()" class="flex-1 py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:bg-brand-primaryHover transition-colors shadow-md btn-bouncy">Tạo mới</button>
+                    <button type="button" onclick="saveNewCategory()" id="save-category-button" class="flex-1 py-3.5 rounded-xl font-bold text-white bg-brand-primary hover:bg-brand-primaryHover transition-colors shadow-md btn-bouncy">Thêm danh mục mới</button>
                 </div>
             </div>
         </div>
     </main>
 
-    <div id="fund-manager-modal" class="fixed inset-0 z-[120] hidden items-center justify-center p-4 bg-slate-950/60" onclick="if(event.target===this)closeFundManager()">
+    <div id="fund-manager-modal" class="fixed inset-0 z-[120] hidden flex-col items-center justify-center p-4 overflow-x-hidden bg-slate-950/60" onclick="if(event.target===this)closeFundManager()">
         <div class="w-full max-w-lg max-h-[85dvh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-800 p-5 shadow-2xl">
             <div class="flex items-center justify-between mb-4"><h3 class="text-xl font-extrabold">Quản lý ví và quỹ</h3><button type="button" onclick="closeFundManager()" class="p-2 rounded-lg"><i class="fas fa-times"></i></button></div>
             <div id="fund-manager-list" class="space-y-2 mb-5"></div>
@@ -184,19 +185,13 @@
         if (isVisible === mainVisible) return;
         mainVisible = isVisible;
         if (isVisible) {
-          const from = floating.getBoundingClientRect();
-          const to = mainButton.getBoundingClientRect();
-          floating.style.setProperty('--fly-x', `${to.left + to.width / 2 - (from.left + from.width / 2)}px`);
-          floating.style.setProperty('--fly-y', `${to.top + to.height / 2 - (from.top + from.height / 2)}px`);
-          floating.classList.add('floating-save-fly-away');
-          window.setTimeout(() => {
-            floating.classList.remove('floating-save-fly-away');
-            floating.classList.add('floating-save-hidden');
-          }, 480);
+          // Ẩn ngay nút nổi khi nút lưu chính đang nhìn thấy; không chạy animation bay ngang.
+          floating.classList.remove('floating-save-fly-away');
+          floating.classList.add('floating-save-hidden');
+          floating.style.removeProperty('--fly-x'); floating.style.removeProperty('--fly-y');
         } else {
           floating.classList.remove('floating-save-hidden', 'floating-save-fly-away');
-          floating.style.removeProperty('--fly-x');
-          floating.style.removeProperty('--fly-y');
+          floating.style.removeProperty('--fly-x'); floating.style.removeProperty('--fly-y');
         }
       };
       if ('IntersectionObserver' in window) {
@@ -214,12 +209,23 @@
         window.addEventListener('resize', check);
         check();
       }
-      floating.addEventListener('click', () => {
-        if (form.requestSubmit) form.requestSubmit(mainButton);
-        else mainButton.click();
-      });
+      // Kéo thả nút lưu như bong bóng chat; vị trí được lưu trên thiết bị.
+      const posKey = 'so_chi_tieu_cl_floating_save_position';
+      try { const saved = JSON.parse(localStorage.getItem(posKey) || 'null'); if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) { floating.style.left = saved.x + 'px'; floating.style.top = saved.y + 'px'; floating.style.right = 'auto'; floating.style.bottom = 'auto'; } } catch (_) {}
+      let drag = null, moved = false;
+      floating.style.touchAction = 'none';
+      floating.addEventListener('pointerdown', e => { if (e.button !== 0 && e.pointerType === 'mouse') return; const r=floating.getBoundingClientRect(); drag={id:e.pointerId,dx:e.clientX-r.left,dy:e.clientY-r.top,startX:e.clientX,startY:e.clientY}; moved=false; floating.setPointerCapture?.(e.pointerId); });
+      floating.addEventListener('pointermove', e => { if(!drag || drag.id!==e.pointerId)return; if(Math.abs(e.clientX-drag.startX)+Math.abs(e.clientY-drag.startY)>7)moved=true; if(!moved)return; const x=Math.max(6,Math.min(innerWidth-floating.offsetWidth-6,e.clientX-drag.dx)); const y=Math.max(6,Math.min(innerHeight-floating.offsetHeight-6,e.clientY-drag.dy)); floating.style.left=x+'px';floating.style.top=y+'px';floating.style.right='auto';floating.style.bottom='auto'; });
+      const endDrag = e => { if(!drag)return; if(moved){const r=floating.getBoundingClientRect();localStorage.setItem(posKey,JSON.stringify({x:r.left,y:r.top}));floating.dataset.dragged='1';setTimeout(()=>delete floating.dataset.dragged,0);}drag=null; };
+      floating.addEventListener('pointerup',endDrag); floating.addEventListener('pointercancel',endDrag);
+      floating.addEventListener('click', e => { if(floating.dataset.dragged==='1'){e.preventDefault();e.stopImmediatePropagation();return;} if (form.requestSubmit) form.requestSubmit(mainButton); else mainButton.click(); });
       form.addEventListener('submit', () => floating.classList.add('floating-save-hidden'));
     })();
+    </script>
+
+    <script>
+    function toggleTransferMode(){const on=document.getElementById('transfer-mode').checked;document.getElementById('transfer-fields').classList.toggle('hidden',!on);const cat=document.getElementById('category-grid');if(cat)cat.closest('.mb-8')?.classList.toggle('hidden',on);const err=document.getElementById('category-error');if(on&&err)err.classList.add('hidden');const to=document.getElementById('transfer-to-account'),from=document.getElementById('input-account');if(to&&from){const old=to.value;to.innerHTML=[...from.options].map(o=>`<option value="${o.value}">${o.textContent}</option>`).join('');if(old)to.value=old;if(to.value===from.value&&to.options.length>1)to.selectedIndex=(from.selectedIndex+1)%to.options.length;}}
+    document.addEventListener('DOMContentLoaded',()=>{document.getElementById('input-account')?.addEventListener('change',toggleTransferMode);toggleTransferMode();});
     </script>
 
     <!-- Firebase đồng bộ đám mây (tùy chọn; cần cấu hình firebase-config.js) -->
